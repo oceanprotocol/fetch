@@ -57,7 +57,7 @@ Choose one of the possible implementations:
 Sync (inherited from BaseSyncConnection) or Async (inherited from Connection) connection and remove unused one.
 """
 
-CONNECTION_ID = PublicId.from_str("eightballer/ocean:0.1.0")
+CONNECTION_ID = PublicId.from_str("ocean:0.1.0")
 
 
 # Specify metadata and service attributes, for "GPR" algorithm script.
@@ -422,7 +422,7 @@ class OceanConnection(BaseSyncConnection):
                 self.logger.info(f"result: {result}")
                 function_result.append(result)
 
-        # assert len(function_result) > 0, "empty results"
+        assert len(function_result) > 0, "empty results"
         model = [pickle.loads(res) for res in function_result]
         assert len(model) > 0, "unpickle result unsuccessful"
 
@@ -749,7 +749,6 @@ class OceanConnection(BaseSyncConnection):
         if retries == 0:
             raise ValueError("Failed to request datatokens after retrying.")
         try:
-            # TODO: do the logic for enterprise as well
             return datatoken.dispense(
                 amount=Web3.toWei(envelope.message.datatoken_amt, "ether"),
                 tx_dict=tx_dict,
