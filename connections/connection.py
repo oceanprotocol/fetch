@@ -114,21 +114,21 @@ class OceanConnection(BaseSyncConnection):
         message_type = kwargs["type"]
         self.logger.debug(f"Received {message_type} in connection")
 
-        if message_type == OceanMessage.Performative.DEPLOY_D2C:
+        if message_type == "DEPLOY_D2C":
             self._deploy_data_for_d2c(**kwargs)
-        if message_type == OceanMessage.Performative.DEPLOY_ALGORITHM:
+        if message_type == "DEPLOY_ALGORITHM":
             self._deploy_algorithm(**kwargs)
-        if message_type == OceanMessage.Performative.PERMISSION_DATASET:
+        if message_type == "PERMISSION_DATASET":
             self._permission_dataset(**kwargs)
-        if message_type == OceanMessage.Performative.D2C_JOB:
+        if message_type == "D2C_JOB":
             self._create_d2c_job(**kwargs)
-        if message_type == OceanMessage.Performative.DEPLOY_DATA_DOWNLOAD:
+        if message_type == "DEPLOY_DATA_DOWNLOAD":
             self._deploy_data_to_download(**kwargs)
-        if message_type == OceanMessage.Performative.CREATE_DISPENSER:
+        if message_type == "CREATE_DISPENSER":
             self._create_dispenser(**kwargs)
-        if message_type == OceanMessage.Performative.CREATE_FIXED_RATE_EXCHANGE:
+        if message_type == "CREATE_FIXED_RATE_EXCHANGE":
             self._create_fixed_rate(**kwargs)
-        if message_type == OceanMessage.Performative.DOWNLOAD_JOB:
+        if message_type == "DOWNLOAD_JOB":
             self._purchase_datatoken(**kwargs)
 
     def _purchase_datatoken(self, **kwargs):

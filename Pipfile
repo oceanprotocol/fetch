@@ -10,7 +10,7 @@ aea-ledger-fetchai = "==1.2.4"
 boto3 = "*"
 pipfile = "*"
 defusedxml = "*"
-ocean-lib = "==2.3.3"
+ocean-lib = "==2.2.4"
 
 [dev-packages]
 black = "*"
