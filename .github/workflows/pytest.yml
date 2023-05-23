@@ -47,5 +47,5 @@ jobs:
       - name: Run tests
         working-directory: ${{ github.workspace }}
         run: |
-          pipenv run python src/distribute_ocean_tokens.py
+          pipenv run python distribute_ocean_tokens.py
           pipenv run python -m pytest
