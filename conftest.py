@@ -1,6 +1,8 @@
 import os
 import pytest
 
+from brownie.network import accounts
+
 
 @pytest.fixture(autouse=True)
 def setup_all():
@@ -12,3 +14,8 @@ def setup_all():
 
     with open(os.environ.get("BUYER_AEA_KEY_ETHEREUM_PATH"), "w") as f:
         f.write(os.environ.get("BUYER_AEA_KEY_ETHEREUM"))
+
+
+@pytest.fixture
+def publisher_wallet():
+    return accounts.add(os.getenv("SELLER_AEA_KEY_ETHEREUM"))

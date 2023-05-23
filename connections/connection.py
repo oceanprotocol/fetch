@@ -30,7 +30,6 @@ from brownie.network import accounts, chain, priority_fee, web3
 
 from aea.configurations.base import PublicId
 from aea.connections.base import BaseSyncConnection
-from packages.eightballer.protocols.ocean.message import OceanMessage
 from packages.eightballer.connections.ocean.utils import (
     convert_to_bytes_format,
     get_tx_dict,
