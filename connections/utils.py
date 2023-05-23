@@ -20,51 +20,32 @@ import logging
 
 import requests
 from web3.main import Web3
-from _codecs import escape_decode
-
-CHAIN_ID_PER_NETWORK = {
-    "mainnet": 1,
-    "goerli": 5,
-    "bsc": 56,
-    "polygon-main": 137,
-    "energyweb": 246,
-    "moonriver": 1285,
-    "moonbase": 1287,
-    "development": 8996,
-    "polygon-test": 80001,
-}
 
 
 def get_tx_dict(ocean_config: dict, wallet, chain) -> dict:
     if "polygon" in ocean_config["NETWORK_NAME"]:
+        gas_resp = requests.get("https://gasstation-mainnet.matic.network/v2")
+
+        if not gas_resp or gas_resp.status_code != 200:
+            print(
+                f"Invalid response from Polygon gas station. Retry with brownie values..."
+            )
+
+            return {
+                "from": wallet,
+                "priority_fee": chain.priority_fee,
+                "max_fee": chain.base_fee + 2 * chain.priority_fee,
+                "required_confs": 3,
+            }
+
         return {
             "from": wallet,
-            "priority_fee": chain.priority_fee,
-            "max_fee": chain.base_fee + 2 * chain.priority_fee,
-            # "required_confs": 3,
+            "priority_fee": Web3.toWei(
+                gas_resp.json()["fast"]["maxPriorityFee"], "gwei"
+            ),
+            "max_fee": Web3.toWei(gas_resp.json()["fast"]["maxFee"], "gwei"),
+            "required_confs": 3,
         }
-        # gas_resp = requests.get("https://gasstation-mainnet.matic.network/v2")
-        #
-        # if not gas_resp or gas_resp.status_code != 200:
-        #     print(
-        #         f"Invalid response from Polygon gas station. Retry with brownie values..."
-        #     )
-        #
-        #     return {
-        #         "from": wallet,
-        #         "priority_fee": chain.priority_fee,
-        #         "max_fee": chain.base_fee + 2 * chain.priority_fee,
-        #         "required_confs": 3,
-        #     }
-        #
-        # return {
-        #     "from": wallet,
-        #     "priority_fee": Web3.toWei(
-        #         gas_resp.json()["fast"]["maxPriorityFee"], "gwei"
-        #     ),
-        #     "max_fee": Web3.toWei(gas_resp.json()["fast"]["maxFee"], "gwei"),
-        #     "required_confs": 3,
-        # }
 
     return {"from": wallet}
 
@@ -77,8 +58,3 @@ def convert_to_bytes_format(web3, data: str) -> bytes:
     assert isinstance(bytes_data, bytes), "Invalid data provided."
 
     return bytes_data
-
-
-def get_chain_id_from_network_name(network_name: str) -> int:
-    """Retrieves the chain ID for the required network name."""
-    return CHAIN_ID_PER_NETWORK[network_name]

@@ -35,20 +35,14 @@ from packages.eightballer.protocols.ocean.message import OceanMessage
 from packages.eightballer.connections.ocean.utils import (
     convert_to_bytes_format,
     get_tx_dict,
-    get_chain_id_from_network_name,
 )
 from brownie.network import accounts
-from ocean_lib.data_provider.data_service_provider import DataServiceProvider
 from ocean_lib.example_config import get_config_dict
 from ocean_lib.models.compute_input import ComputeInput
-from ocean_lib.models.datatoken_base import DatatokenArguments, TokenFeeInfo
 from ocean_lib.models.fixed_rate_exchange import OneExchange
 from ocean_lib.ocean.ocean import Ocean
-from ocean_lib.services.service import Service
-from ocean_lib.structures.file_objects import UrlFile
 from ocean_lib.web3_internal.constants import ZERO_ADDRESS
 from ocean_lib.web3_internal.utils import connect_to_network
-from web3._utils.threads import Timeout
 from web3.main import Web3
 
 """
@@ -58,10 +52,6 @@ Sync (inherited from BaseSyncConnection) or Async (inherited from Connection) co
 """
 
 CONNECTION_ID = PublicId.from_str("ocean:0.1.0")
-
-
-# Specify metadata and service attributes, for "GPR" algorithm script.
-# In same location as Branin test dataset. GPR = Gaussian Process Regression.
 
 
 class OceanConnection(BaseSyncConnection):
@@ -125,7 +115,7 @@ class OceanConnection(BaseSyncConnection):
         self.logger.debug(f"Received {envelope} in connection")
 
         if envelope.message.performative == OceanMessage.Performative.DEPLOY_D2C:
-            self._deploy_data_for_d2c(envelope)
+            self._deploy_data_for_c2d(envelope)
         if envelope.message.performative == OceanMessage.Performative.DEPLOY_ALGORITHM:
             self._deploy_algorithm(envelope)
         if (
@@ -134,7 +124,7 @@ class OceanConnection(BaseSyncConnection):
         ):
             self._permission_dataset(envelope)
         if envelope.message.performative == OceanMessage.Performative.D2C_JOB:
-            self._create_d2c_job(envelope)
+            self._create_c2d_job(envelope)
         if (
             envelope.message.performative
             == OceanMessage.Performative.DEPLOY_DATA_DOWNLOAD
@@ -160,40 +150,30 @@ class OceanConnection(BaseSyncConnection):
             if envelope.message.has_pricing_schema:
                 self.logger.info("Starting to buy DTs from fixed rate exchange...")
                 self._buy_dt_from_fre(envelope=envelope)
-                msg = OceanMessage(
-                    performative=OceanMessage.Performative.DOWNLOAD_JOB,
-                    **{
-                        "datatoken_address": envelope.message.datatoken_address,
-                        "datatoken_amt": envelope.message.datatoken_amt,
-                        "max_cost_ocean": envelope.message.max_cost_ocean,
-                        "asset_did": envelope.message.asset_did,
-                        "exchange_id": str(envelope.message.exchange_id),
-                        "has_pricing_schema": True,
-                    },
-                )
+                msg = {
+                    "datatoken_address": envelope.message.datatoken_address,
+                    "datatoken_amt": envelope.message.datatoken_amt,
+                    "max_cost_ocean": envelope.message.max_cost_ocean,
+                    "asset_did": envelope.message.asset_did,
+                    "exchange_id": str(envelope.message.exchange_id),
+                    "has_pricing_schema": True,
+                }
             else:
                 self.logger.info("Request DTs from the dispenser")
                 tx = self._dispense(envelope=envelope)
-                msg = OceanMessage(
-                    performative=OceanMessage.Performative.DOWNLOAD_JOB,
-                    **{
-                        "datatoken_address": envelope.message.datatoken_address,
-                        "datatoken_amt": envelope.message.datatoken_amt,
-                        "asset_did": envelope.message.asset_did,
-                        "order_tx_id": tx.txid,
-                        "has_pricing_schema": False,
-                    },
-                )
+                msg = {
+                    "datatoken_address": envelope.message.datatoken_address,
+                    "datatoken_amt": envelope.message.datatoken_amt,
+                    "asset_did": envelope.message.asset_did,
+                    "order_tx_id": tx.txid,
+                    "has_pricing_schema": False,
+                }
 
-            msg.sender = envelope.to
-            msg.to = envelope.sender
-            envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-            self.put_envelope(envelope)
             self.logger.info(f"Purchased datatokens successfully!")
+            return msg
 
         except Exception as e:
             self.logger.error("Couldn't purchase datatokens")
-            self.logger.error(f"balance of matic: {self.wallet.balance()}")
             self.logger.error(e)
 
     def _download_asset(self, envelope: Envelope, retries: int = 2):
@@ -206,15 +186,13 @@ class OceanConnection(BaseSyncConnection):
         datatoken = self.ocean.get_datatoken(envelope.message.datatoken_address)
 
         if datatoken.balanceOf(self.wallet.address) < envelope.message.datatoken_amt:
-            self.logger.info(
-                f"insufficient data tokens.. Purchasing from the open market."
-            )
+            self.logger.info(f"Insufficient datatokens. Purchasing right now ...")
             if envelope.message.exchange_id:
                 self._buy_dt_from_fre(envelope=envelope)
             else:
                 self._dispense(envelope=envelope)
         else:
-            self.logger.info(f"Already has sufficient Datatokens.")
+            self.logger.info(f"Already has sufficient datatokens.")
 
         asset = self.ocean.assets.resolve(did)
         service = asset.get_service_by_id("0")
@@ -256,12 +234,9 @@ class OceanConnection(BaseSyncConnection):
         self.logger.info(f"file_path = '{file_path}'")
         data = open(file_path, "rb").read()
 
-        msg = OceanMessage(performative=OceanMessage.Performative.RESULTS, content=data)
-        msg.sender = envelope.to
-        msg.to = envelope.sender
-        envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-        self.put_envelope(envelope)
         self.logger.info(f"completed download! Sending result to handler!")
+        msg = {"data": data}
+        return msg
 
     def _create_dispenser(self, envelope: Envelope, retries: int = 2):
         """
@@ -271,26 +246,25 @@ class OceanConnection(BaseSyncConnection):
         param retries: number of retries for creating the dispenser.
         """
         if retries == 0:
-            raise ValueError("Failed to deploy dispenser...")
+            raise ValueError("Failed to deploy dispenser after retrying.")
         try:
             self._create_dispenser_helper(envelope=envelope)
             datatoken = self.ocean.get_datatoken(envelope.message.datatoken_address)
             dispenser_status = datatoken.dispenser_status().active
-            self.logger.info(f"Dispenser status = '{dispenser_status}'")
-            msg = OceanMessage(
-                performative=OceanMessage.Performative.DISPENSER_DEPLOYMENT_RECIEPT,
-                datatoken_address=datatoken.address,
-                dispenser_status=dispenser_status,
-                has_pricing_schema=False,
-            )
-            msg.sender = envelope.to
-            msg.to = envelope.sender
-            envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-            self.put_envelope(envelope)
+            self.logger.info(f"Dispenser status: {dispenser_status}")
+            msg = {
+                "datatoken_address": datatoken.address,
+                "dispenser_status": dispenser_status,
+                "has_pricing_schema": False,
+            }
             self.logger.info(f"Dispenser created! Sending result to handler!")
+
+            return msg
         except (web3.exceptions.TransactionNotFound, ValueError) as e:
-            self.logger.error(f"Failed to deploy dispenser!")
-            self._create_fixed_rate(envelope, retries - 1)
+            self.logger.error(
+                f"Failed to deploy dispenser with the following error: {e}. Retrying..."
+            )
+            self._create_dispenser(envelope, retries - 1)
 
     def _create_fixed_rate(self, envelope: Envelope, retries: int = 2):
         """
@@ -300,25 +274,21 @@ class OceanConnection(BaseSyncConnection):
         param retries: number of retries for creating the FRE.
         """
         if retries == 0:
-            raise ValueError("Failed to deploy fixed rate exchange...")
+            raise ValueError("Failed to deploy fixed rate exchange after retrying.")
         try:
             exchange_id = self._create_fixed_rate_helper(envelope=envelope)
-            self.logger.info(f"Deployed fixed rate exchange = '{exchange_id}'")
-            msg = OceanMessage(
-                performative=OceanMessage.Performative.EXCHANGE_DEPLOYMENT_RECIEPT,
-                exchange_id=str(exchange_id),
-                has_pricing_schema=True,
-            )
-            msg.sender = envelope.to
-            msg.to = envelope.sender
-            envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-            self.put_envelope(envelope)
+            self.logger.info(f"Deployed fixed rate exchange: {exchange_id}")
+            msg = {"exchange_id": str(exchange_id), "has_pricing_schema": True}
             self.logger.info(f"Fixed rate exchange created! Sending result to handler!")
+
+            return msg
         except (web3.exceptions.TransactionNotFound, ValueError) as e:
-            self.logger.error(f"Failed to deploy fixed rate exchange!")
+            self.logger.error(
+                f"Failed to deploy fixed rate exchange with the following error {e}. Retrying..."
+            )
             self._create_fixed_rate(envelope, retries - 1)
 
-    def _create_d2c_job(self, envelope: Envelope, retries: int = 2):
+    def _create_c2d_job(self, envelope: Envelope, retries: int = 2):
         """
         Pays for compute service & starts the compute job.
 
@@ -331,20 +301,16 @@ class OceanConnection(BaseSyncConnection):
 
         compute_service = DATA_DDO.services[1]
         algo_service = ALG_DDO.services[0]
-        self.logger.info(
-            f'chain id: {DATA_DDO.chain_id}'
-        )
+
         free_c2d_env = self.ocean.compute.get_free_c2d_environment(
             service_endpoint=compute_service.service_endpoint,
             chain_id=DATA_DDO.chain_id,
         )
-        self.logger.info(f"free c2d env: {free_c2d_env}")
 
         DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
         ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
 
-        # Pay for dataset and algo for 1 day
-        self.logger.info(f"paying for dataset {DATA_did}")
+        self.logger.info(f"Paying for dataset {DATA_did}...")
         if retries == 0:
             raise ValueError("Failed to pay for compute service after retrying.")
         try:
@@ -354,12 +320,14 @@ class OceanConnection(BaseSyncConnection):
                 datasets=[DATA_compute_input],
                 algorithm_data=ALGO_compute_input,
                 compute_environment=free_c2d_env["id"],
-                valid_until=int((datetime.now(timezone.utc) + timedelta(days=1)).timestamp()),
+                valid_until=int(
+                    (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
+                ),
                 consume_market_order_fee_address=compute_service.datatoken,
                 tx_dict=tx_dict,
                 consumer_address=free_c2d_env["consumerAddress"],
             )
-            self.logger.info(f"finishing paying for compute service {datetime.now()}")
+            self.logger.info(f"Finishing paying for compute service {datetime.now()}")
         except (
             ValueError,
             brownie.exceptions.VirtualMachineError,
@@ -368,14 +336,13 @@ class OceanConnection(BaseSyncConnection):
             self.logger.error(
                 f"Failed to pay for compute service with error: {e}\n Retrying..."
             )
-            self._create_d2c_job(envelope, retries - 1)
+            self._create_c2d_job(envelope, retries - 1)
 
         self.logger.info(
-            f"paid for dataset {DATA_did} receipt: {[dataset.as_dictionary() for dataset in datasets]} with algorithm {algorithm.as_dictionary()}"
+            f"Paid for dataset {DATA_did} receipt: {[dataset.as_dictionary() for dataset in datasets]} with algorithm {algorithm.as_dictionary()}"
         )
 
-        self.logger.info(f"starting compute job....")
-        self.logger.info(f"dataset[0]: {datasets[0].as_dictionary()}")
+        self.logger.info(f"Starting compute job....")
         job_id = self.ocean.compute.start(
             consumer_wallet=self.wallet,
             dataset=datasets[0],
@@ -390,7 +357,7 @@ class OceanConnection(BaseSyncConnection):
 
         assert (
             status and status["ok"]
-        ), f"something not right about the compute job, got status: {status}"
+        ), f"Something not right about the compute job, got status: {status}"
 
         self.logger.info(f"Started compute job with id: {job_id}")
 
@@ -408,8 +375,9 @@ class OceanConnection(BaseSyncConnection):
         )
         assert status[
             "results"
-        ], f"something not right about the compute job, results were not fetched: {status} "
-        self.logger.info(f"status results: {status['results']}\n status: {status}")
+        ], f"Something not right about the compute job, results were not fetched: {status} "
+
+        self.logger.info(f"Status results: {status['results']}\n status: {status}")
 
         function_result = []
         for i in range(len(status["results"])):
@@ -424,16 +392,12 @@ class OceanConnection(BaseSyncConnection):
 
         assert len(function_result) > 0, "empty results"
         model = [pickle.loads(res) for res in function_result]
-        assert len(model) > 0, "unpickle result unsuccessful"
+        assert len(model) > 0, "Unpickle result unsuccessful"
 
-        msg = OceanMessage(
-            performative=OceanMessage.Performative.RESULTS, content=model
-        )
-        msg.sender = envelope.to
-        msg.to = envelope.sender
-        envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-        self.put_envelope(envelope)
-        self.logger.info(f"completed D2C! Sending result to handler!")
+        msg = {"model": model}
+        self.logger.info(f"Completed C2D!")
+
+        return msg
 
     def _permission_dataset(self, envelope: Envelope, retries: int = 2):
         """
@@ -446,7 +410,7 @@ class OceanConnection(BaseSyncConnection):
 
         if data_ddo is None or algo_ddo is None:
             raise ValueError(
-                f"Unable to loaded the assets from their dids. Please confirm correct deployment on Ocean!"
+                f"Unable to loaded the assets from their DIDs. Please confirm correct deployment on Ocean!"
             )
 
         compute_service = data_ddo.services[1]
@@ -470,17 +434,14 @@ class OceanConnection(BaseSyncConnection):
             )
             self._permission_dataset(envelope, retries - 1)
 
-        msg = OceanMessage(
-            performative=OceanMessage.Performative.DEPLOYMENT_RECIEPT,
-            type="permissions",
-            did=data_ddo.did,
-            datatoken_contract_address=data_ddo.datatokens[0].get("address"),
-        )
-        msg.sender = envelope.to
-        msg.to = envelope.sender
-        envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-        self.put_envelope(envelope)
-        self.logger.info(f"Permission datasets. ")
+        msg = {
+            "did": data_ddo.did,
+            "datatoken_contract_address": data_ddo.datatokens[0].get("address"),
+        }
+
+        self.logger.info(f"Permissions of dataset configured successfully.")
+
+        return msg
 
     def _deploy_data_to_download(self, envelope: Envelope):
         """
@@ -522,19 +483,15 @@ class OceanConnection(BaseSyncConnection):
 
         self.logger.info(f"Ensure asset is cached in aquarius")
 
-        msg = OceanMessage(
-            performative=OceanMessage.Performative.DEPLOYMENT_RECIEPT,
-            type="data_download",
-            did=DATA_ddo.did,
-            datatoken_contract_address=DATA_datatoken.address,
-            has_pricing_schema=envelope.message.has_pricing_schema,
-        )
-        msg.sender = envelope.to
-        msg.to = envelope.sender
-        deployment_envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-        self.put_envelope(deployment_envelope)
+        msg = {
+            "did": DATA_ddo.did,
+            "datatoken_contract_address": DATA_datatoken.address,
+            "has_pricing_schema": envelope.message.has_pricing_schema,
+        }
 
-    def _deploy_data_for_d2c(self, envelope: Envelope, retries: int = 2):
+        return msg
+
+    def _deploy_data_for_c2d(self, envelope: Envelope, retries: int = 2):
         """
         Creates data NFT, datatoken & data asset for compute.
 
@@ -577,19 +534,15 @@ class OceanConnection(BaseSyncConnection):
             self.logger.error(
                 f"Failed to deploy a data NFT and a datatoken with error: {e}\n Retrying..."
             )
-            self._deploy_data_for_d2c(envelope, retries - 1)
+            self._deploy_data_for_c2d(envelope, retries - 1)
 
-        msg = OceanMessage(
-            performative=OceanMessage.Performative.DEPLOYMENT_RECIEPT,
-            type="d2c",
-            did=DATA_ddo.did,
-            datatoken_contract_address=DATA_datatoken.address,
-            has_pricing_schema=envelope.message.has_pricing_schema,
-        )
-        msg.sender = envelope.to
-        msg.to = envelope.sender
-        deployment_envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-        self.put_envelope(deployment_envelope)
+        msg = {
+            "did": DATA_ddo.did,
+            "datatoken_contract_address": DATA_datatoken.address,
+            "has_pricing_schema": envelope.message.has_pricing_schema,
+        }
+
+        return msg
 
     def _deploy_algorithm(self, envelope: Envelope, retries: int = 2):
         """
@@ -646,81 +599,13 @@ class OceanConnection(BaseSyncConnection):
             )
             self._deploy_algorithm(envelope, retries - 1)
 
-        msg = OceanMessage(
-            performative=OceanMessage.Performative.DEPLOYMENT_RECIEPT,
-            type="algorithm",
-            did=ALGO_ddo.did,
-            datatoken_contract_address=ALGO_datatoken.address,
-            has_pricing_schema=envelope.message.has_pricing_schema,
-        )
-        msg.sender = envelope.to
-        msg.to = envelope.sender
-        deployment_envelope = Envelope(to=msg.to, sender=msg.sender, message=msg)
-        self.put_envelope(deployment_envelope)
+        msg = {
+            "did": ALGO_ddo.did,
+            "datatoken_contract_address": ALGO_datatoken.address,
+            "has_pricing_schema": envelope.message.has_pricing_schema,
+        }
 
-    def _ensure_asset_cached_in_aquarius(
-        self, did: str, timeout: float = 600, poll_latency: float = 1
-    ):
-        """
-        Ensure asset is cached in Aquarius
-        Default timeout = 10 mins
-        Default poll_latency = 1 second
-        """
-        with Timeout(timeout) as _timeout:
-            while True:
-                asset = self.ocean.assets.resolve(did)
-                if asset is not None:
-                    break
-                _timeout.sleep(poll_latency)
-
-    def _deploy_datatoken(self, envelope: Envelope, retries: int = 2):
-        """
-        Creates a data NFT & a datatoken.
-
-        param envelope: the envelope to send.
-        """
-        if retries == 0:
-            raise ValueError("Failed to deploy data nft and datatoken after retrying.")
-
-        try:
-            self.logger.info(
-                f"interacting with Ocean to deploy data NFT and datatoken..."
-            )
-            self.logger.info("Create data NFT: begin.")
-            tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-            data_nft = self.ocean.data_nft_factory.create(
-                tx_dict=tx_dict,
-                name=envelope.message.data_nft_name,
-                symbol=envelope.message.datatoken_name,
-            )
-            publish_market_order_fees = TokenFeeInfo(
-                address=self.wallet.address, token=ZERO_ADDRESS, amount=0
-            )
-            datatoken = data_nft.create_datatoken(
-                tx_dict=tx_dict,
-                name=envelope.message.datatoken_name,
-                symbol=envelope.message.datatoken_name,
-                template_index=1,
-                minter=self.wallet.address,
-                fee_manager=self.wallet.address,
-                publish_market_order_fees=publish_market_order_fees,
-                bytess=[b""],
-            )
-            self.logger.info(f"created the data token.")
-
-            self.logger.info(
-                f"DATA_datatoken.address = '{datatoken.address}'\n publishing"
-            )
-            return data_nft, datatoken
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
-            self.logger.error(
-                f"Failed to deploy a data NFT and a datatoken with error: {e}\n Retrying..."
-            )
-            self._deploy_datatoken(envelope, retries - 1)
+        return msg
 
     def _create_dispenser_helper(self, envelope: Envelope):
         """
@@ -770,7 +655,6 @@ class OceanConnection(BaseSyncConnection):
         param envelope: the envelope to send.
         """
         datatoken = self.ocean.get_datatoken(envelope.message.datatoken_address)
-        self.logger.info(f"Datatoken: {datatoken.address}")
         self.logger.info(f"Approving ocean tokens to the FRE...")
         tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
         self.ocean.OCEAN_token.approve(
@@ -806,17 +690,12 @@ class OceanConnection(BaseSyncConnection):
         exchange_details = self.ocean.fixed_rate_exchange.getExchange(exchange_id)
         datatoken = self.ocean.get_datatoken(exchange_details[1])
         exchange = OneExchange(self.ocean.fixed_rate_exchange, exchange_id)
-        self.logger.info(f"one exchange: {exchange}")
         OCEAN_token = self.ocean.OCEAN_token
-        self.logger.info(
-            f"OCEAN token: {OCEAN_token}\n OCEAN config: {self.ocean_config}\n wallet: {self.wallet}"
-        )
         tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-        self.logger.info(f"tx dict: {tx_dict}")
+
         if retries == 0:
             raise ValueError("Failed to buy datatokens after retrying.")
         try:
-            # TODO: do the logic for enterprise as well
             datatoken.approve(
                 exchange.address,
                 Web3.toWei(envelope.message.datatoken_amt, "ether"),
