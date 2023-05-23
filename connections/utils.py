@@ -16,7 +16,6 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-import logging
 
 import requests
 from web3.main import Web3
