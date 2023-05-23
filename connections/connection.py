@@ -30,7 +30,6 @@ from brownie.network import accounts, chain, priority_fee, web3
 
 from aea.configurations.base import PublicId
 from aea.connections.base import BaseSyncConnection
-from aea.mail.base import Envelope
 from packages.eightballer.protocols.ocean.message import OceanMessage
 from packages.eightballer.connections.ocean.utils import (
     convert_to_bytes_format,
@@ -106,12 +105,13 @@ class OceanConnection(BaseSyncConnection):
         can be created in the event callback.
         """
 
-    def on_send(self, message_type: str, **kwargs) -> None:
+    def on_send(self, **kwargs) -> None:
         """
         Send an envelope.
 
-        param envelope: the envelope to send.
+        param kwargs: the kwargs to use.
         """
+        message_type = kwargs["type"]
         self.logger.debug(f"Received {message_type} in connection")
 
         if message_type == OceanMessage.Performative.DEPLOY_D2C:
@@ -135,7 +135,13 @@ class OceanConnection(BaseSyncConnection):
         """
         Buys datatokens available on the fixed rate exchange in order to consume services.
 
-        param envelope: the envelope to send.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `datatoken_address`;
+        - `asset_did`;
+        - `datatoken_amt`;
+        - optional: `exchange_id` if there exists a fixed rate exchange attached to the datatoken
+        - optional: `max_cost_ocean` if there exists a fixed rate exchange attached to the datatoken
         """
         try:
             datatoken_address = kwargs["datatoken_address"]
@@ -152,6 +158,7 @@ class OceanConnection(BaseSyncConnection):
                     max_cost_ocean=max_cost_ocean,
                 )
                 msg = {
+                    "type": "DOWNLOAD_JOB",
                     "datatoken_address": datatoken_address,
                     "datatoken_amt": datatoken_amt,
                     "max_cost_ocean": max_cost_ocean,
@@ -166,6 +173,7 @@ class OceanConnection(BaseSyncConnection):
                     datatoken_amt=datatoken_amt,
                 )
                 msg = {
+                    "type": "DOWNLOAD_JOB",
                     "datatoken_address": datatoken_address,
                     "datatoken_amt": datatoken_amt,
                     "asset_did": asset_did,
@@ -184,17 +192,25 @@ class OceanConnection(BaseSyncConnection):
         """
         Downloads files from the asset.
 
-        param envelope: the envelope to send.
+        param retries: number of retries for downloading the asset.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `datatoken_address`;
+        - `asset_did`;
+        - `datatoken_amt`;
+        - optional: `exchange_id` if there exists a fixed rate exchange attached to the datatoken
+        - optional: `max_cost_ocean` if there exists a fixed rate exchange attached to the datatoken
+        - optional: `order_tx_id` if there exists a dispenser attached to the datatoken
         """
         did = kwargs["asset_did"]
         datatoken = self.ocean.get_datatoken(kwargs["datatoken_address"])
         datatoken_amt = kwargs["datatoken_amt"]
-        max_cost_ocean = kwargs["max_cost_ocean"]
 
         if datatoken.balanceOf(self.wallet.address) < datatoken_amt:
             self.logger.info(f"Insufficient datatokens. Purchasing right now ...")
             if "exchange_id" in kwargs.items():
                 exchange_id = kwargs["exchange_id"]
+                max_cost_ocean = kwargs["max_cost_ocean"]
                 self._buy_dt_from_fre(
                     exchange_id=exchange_id,
                     datatoken_amt=datatoken_amt,
@@ -243,7 +259,7 @@ class OceanConnection(BaseSyncConnection):
         data = open(file_path, "rb").read()
 
         self.logger.info(f"Download completed!")
-        msg = {"data": data}
+        msg = {"type": "RESULTS", "data": data}
 
         return msg
 
@@ -251,8 +267,10 @@ class OceanConnection(BaseSyncConnection):
         """
         Deploys a dispenser.
 
-        param envelope: the envelope to send.
         param retries: number of retries for creating the dispenser.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `datatoken_address`
         """
         if retries == 0:
             raise ValueError("Failed to deploy dispenser after retrying.")
@@ -263,11 +281,12 @@ class OceanConnection(BaseSyncConnection):
             dispenser_status = datatoken.dispenser_status().active
             self.logger.info(f"Dispenser status: {dispenser_status}")
             msg = {
+                "type": "DISPENSER_DEPLOYMENT_RECEIPT",
                 "datatoken_address": datatoken.address,
                 "dispenser_status": dispenser_status,
                 "has_pricing_schema": False,
             }
-            self.logger.info(f"Dispenser created! Sending result to handler!")
+            self.logger.info(f"Dispenser created!")
 
             return msg
         except (web3.exceptions.TransactionNotFound, ValueError) as e:
@@ -280,8 +299,12 @@ class OceanConnection(BaseSyncConnection):
         """
         Creates a fixed rate exchange with OCEAN as base tokens.
 
-        param envelope: the envelope to send.
         param retries: number of retries for creating the FRE.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `datatoken_address`;
+        - `rate`;
+        - `ocean_amt`
         """
         if retries == 0:
             raise ValueError("Failed to deploy fixed rate exchange after retrying.")
@@ -293,7 +316,11 @@ class OceanConnection(BaseSyncConnection):
                 datatoken_address=datatoken_address, ocean_amt=ocean_amt, rate=rate
             )
             self.logger.info(f"Deployed fixed rate exchange: {exchange_id}")
-            msg = {"exchange_id": str(exchange_id), "has_pricing_schema": True}
+            msg = {
+                "type": "EXCHANGE_DEPLOYMENT_RECEIPT",
+                "exchange_id": str(exchange_id),
+                "has_pricing_schema": True,
+            }
             self.logger.info(f"Fixed rate exchange created! Sending result to handler!")
 
             return msg
@@ -307,7 +334,11 @@ class OceanConnection(BaseSyncConnection):
         """
         Pays for compute service & starts the compute job.
 
-        param envelope: the envelope to send.
+        param retries: number of retries for starting a compute job.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `data_did`;
+        - `algo_did`
         """
         DATA_did = kwargs["data_did"]
         ALG_did = kwargs["algo_did"]
@@ -409,7 +440,7 @@ class OceanConnection(BaseSyncConnection):
         model = [pickle.loads(res) for res in function_result]
         assert len(model) > 0, "Unpickle result unsuccessful"
 
-        msg = {"model": model}
+        msg = {"type": "RESULTS", "model": model}
         self.logger.info(f"Completed D2C!")
 
         return msg
@@ -418,7 +449,11 @@ class OceanConnection(BaseSyncConnection):
         """
         Updates the trusted algorithm publishers list in order to start a compute job.
 
-        param envelope: the envelope to send.
+        param retries: number of retries for updating trusted algorithm publishers list.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `data_did`;
+        - `algo_did`
         """
         data_ddo = self.ocean.assets.resolve(kwargs["data_did"])
         algo_ddo = self.ocean.assets.resolve(kwargs["algo_did"])
@@ -450,6 +485,7 @@ class OceanConnection(BaseSyncConnection):
             self._permission_dataset(retries - 1, **kwargs)
 
         msg = {
+            "type": "DEPLOYMENT_RECEIPT",
             "did": data_ddo.did,
             "datatoken_contract_address": data_ddo.datatokens[0].get("address"),
         }
@@ -462,7 +498,14 @@ class OceanConnection(BaseSyncConnection):
         """
         Creates an Ocean asset with access service.
 
-        param envelope: the envelope to send.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `description`;
+        - `name`;
+        - `author`;
+        - `license`;
+        - `dataset_url`;
+        - `has_pricing_schema`
         """
 
         DATA_metadata = {
@@ -499,6 +542,7 @@ class OceanConnection(BaseSyncConnection):
         self.logger.info(f"Ensure asset is cached in aquarius")
 
         msg = {
+            "type": "DEPLOYMENT_RECEIPT",
             "did": DATA_ddo.did,
             "datatoken_contract_address": DATA_datatoken.address,
             "has_pricing_schema": kwargs["has_pricing_schema"],
@@ -510,7 +554,15 @@ class OceanConnection(BaseSyncConnection):
         """
         Creates data NFT, datatoken & data asset for compute.
 
-        param envelope: the envelope to send.
+        param retries: number of retries for creating data for compute.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `description`;
+        - `name`;
+        - `author`;
+        - `license`;
+        - `dataset_url`;
+        - `has_pricing_schema`
         """
 
         DATA_metadata = {
@@ -552,6 +604,7 @@ class OceanConnection(BaseSyncConnection):
             self._deploy_data_for_d2c(retries - 1, **kwargs)
 
         msg = {
+            "type": "DEPLOYMENT_RECEIPT",
             "did": DATA_ddo.did,
             "datatoken_contract_address": DATA_datatoken.address,
             "has_pricing_schema": kwargs["has_pricing_schema"],
@@ -563,8 +616,25 @@ class OceanConnection(BaseSyncConnection):
         """
         Creates data NFT, datatoken & asset for the algorithm for compute.
 
-        param envelope: the envelope to send.
+        param retries: number of retries for creating data for compute.
+        param kwargs: necessary parameters to use.
+        They are:
+        - `date_created`;
+        - `description`;
+        - `name`;
+        - `author`;
+        - `license`;
+        - `language`;
+        - `format`;
+        - `version`;
+        - `entrypoint`;
+        - `image`;
+        - `tag`;
+        - `checksum`;
+        - `files_url`;
+        - `has_pricing_schema`
         """
+
         ALGO_date_created = kwargs["date_created"]
         ALGO_metadata = {
             "created": ALGO_date_created,
@@ -615,6 +685,7 @@ class OceanConnection(BaseSyncConnection):
             self._deploy_algorithm(retries - 1, **kwargs)
 
         msg = {
+            "type": "DEPLOYMENT_RECEIPT",
             "did": ALGO_ddo.did,
             "datatoken_contract_address": ALGO_datatoken.address,
             "has_pricing_schema": kwargs["has_pricing_schema"],
@@ -626,7 +697,7 @@ class OceanConnection(BaseSyncConnection):
         """
         Helper for creating a dispenser with minting option activated.
 
-        param envelope: the envelope to send.
+        param datatoken_address: the contract address of the datatoken.
         """
         datatoken = self.ocean.get_datatoken(datatoken_address)
         self.logger.info(f"Datatoken: {datatoken.address}")
@@ -641,7 +712,9 @@ class OceanConnection(BaseSyncConnection):
         """
         Helper function for requesting datatokens from the dispenser depending on the datatoken template.
 
-        param envelope: the envelope to send.
+        param datatoken_address: the contract address of the datatoken.
+        param datatoken_amt: the amount of the datatoken.
+        param retries: number of retries for dispensing.
         """
         datatoken = self.ocean.get_datatoken(datatoken_address)
 
@@ -667,7 +740,9 @@ class OceanConnection(BaseSyncConnection):
         """
         Helper for creating a fixed rate exchange with minting option activated.
 
-        param envelope: the envelope to send.
+        param datatoken_address: the contract address of the datatoken.
+        param ocean_amt: the amount of the OCEAN tokens.
+        param rate: rate for BT:DT in fixed rate exchange.
         """
         datatoken = self.ocean.get_datatoken(datatoken_address)
         self.logger.info(f"Approving ocean tokens to the FRE...")
@@ -701,7 +776,10 @@ class OceanConnection(BaseSyncConnection):
         """
         Helper function for approving tokens from the fixed rate exchange & buying datatokens.
 
-        param envelope: the envelope to send.
+        param exchange_id: the identifier of exchange.
+        param datatoken_amt: the amount of the datatoken.
+        param max_cost_ocean: the maximum amount of the OCEAN tokens in the exchange.
+        param retries: number of retries for buying DTs.
         """
         exchange_id = convert_to_bytes_format(web3, str(exchange_id))
         exchange_details = self.ocean.fixed_rate_exchange.getExchange(exchange_id)
