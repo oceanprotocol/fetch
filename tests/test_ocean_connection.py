@@ -17,7 +17,7 @@ def test_main_flow():
         "None",
     )
 
-    ocean.connect()
+    ocean.on_connect()
 
     dataset = {
         "type": "DEPLOY_D2C",
