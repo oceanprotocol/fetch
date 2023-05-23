@@ -8,8 +8,8 @@ from connections.connection import OceanConnection
 def test_main_flow():
     ocean = OceanConnection(
         ConnectionConfig(
-            "ocean",
-            "ocean",
+            "connection",
+            "oceanprotocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
