@@ -19,8 +19,7 @@
 """Scaffold connection and channel."""
 import pickle
 import time
-import web3.exceptions
-import brownie.exceptions
+from brownie.exceptions import ContractNotFound, TransactionError, VirtualMachineError
 import os
 import ocean_lib.exceptions
 from datetime import datetime, timedelta, timezone
@@ -34,7 +33,6 @@ from connections.utils import (
     convert_to_bytes_format,
     get_tx_dict,
 )
-from brownie.network import accounts
 from ocean_lib.example_config import get_config_dict
 from ocean_lib.models.compute_input import ComputeInput
 from ocean_lib.models.fixed_rate_exchange import OneExchange
@@ -78,6 +76,7 @@ class OceanConnection(BaseSyncConnection):
         :param kwargs: keyword arguments passed to component base
         """
         super().__init__(*args, **kwargs)
+        self.logger.setLevel(10)
 
     def main(self) -> None:
         """
@@ -288,7 +287,12 @@ class OceanConnection(BaseSyncConnection):
             self.logger.info(f"Dispenser created!")
 
             return msg
-        except (web3.exceptions.TransactionNotFound, ValueError) as e:
+        except (
+            ContractNotFound,
+            TransactionError,
+            VirtualMachineError,
+            ValueError,
+        ) as e:
             self.logger.error(
                 f"Failed to deploy dispenser with the following error: {e}. Retrying..."
             )
@@ -323,7 +327,12 @@ class OceanConnection(BaseSyncConnection):
             self.logger.info(f"Fixed rate exchange created! Sending result to handler!")
 
             return msg
-        except (web3.exceptions.TransactionNotFound, ValueError) as e:
+        except (
+            ContractNotFound,
+            TransactionError,
+            VirtualMachineError,
+            ValueError,
+        ) as e:
             self.logger.error(
                 f"Failed to deploy fixed rate exchange with the following error {e}. Retrying..."
             )
@@ -806,8 +815,8 @@ class OceanConnection(BaseSyncConnection):
             self.logger.info(f"balance: {self.wallet.balance()}")
         except (
             ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
+            VirtualMachineError,
+            ContractNotFound,
         ) as e:
             self.logger.error(
                 f"Failed to buy datatokens from FRE with error: {e}\n Retrying..."
