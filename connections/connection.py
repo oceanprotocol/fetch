@@ -324,7 +324,7 @@ class OceanConnection(BaseSyncConnection):
                 "exchange_id": str(exchange_id),
                 "has_pricing_schema": True,
             }
-            self.logger.info(f"Fixed rate exchange created! Sending result to handler!")
+            self.logger.info(f"Fixed rate exchange created!")
 
             return msg
         except (

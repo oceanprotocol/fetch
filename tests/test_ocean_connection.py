@@ -87,7 +87,7 @@ def test_deploy_algorithm(caplog):
 
 
 def test_deploy_fixed_rate_exchange(caplog):
-    """Tests deploying correctly a data algorithm for C2D."""
+    """Tests deploying correctly a fixed rate exchange."""
 
     ocean = OceanConnection(
         ConnectionConfig(
@@ -139,3 +139,50 @@ def test_deploy_fixed_rate_exchange(caplog):
 
     assert exchange_details[1] == datatoken_address
     assert exchange_details[5] == Web3.toWei(1, "ether")  # rate
+
+
+def test_deploy_dispenser(caplog):
+    """Tests deploying correctly a dispenser."""
+
+    ocean = OceanConnection(
+        ConnectionConfig(
+            "connection",
+            "oceanprotocol",
+            "0.1.0",
+            ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
+            key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
+        ),
+        "None",
+    )
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(ocean.connect())
+
+    ocean.on_connect()
+
+    dataset = {
+        "type": "DEPLOY_D2C",
+        "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
+        "name": "example",
+        "description": "example",
+        "author": "Trent",
+        "license": "CCO",
+        "has_pricing_schema": True,
+    }
+
+    ocean.on_send(**dataset)
+
+    did = caplog.records[-1].msg[12:-1]
+    ddo = ocean.ocean.assets.resolve(did)
+    datatoken_address = ddo.datatokens[0].get("address")
+
+    dispenser = {
+        "type": "CREATE_DISPENSER",
+        "datatoken_address": datatoken_address,
+    }
+
+    ocean.on_send(**dispenser)
+
+    assert "connected to Ocean with config.network_name = 'development'" in caplog.text
+    assert "Received CREATE_DISPENSER in connection" in caplog.text
+    assert "Dispenser status: True" in caplog.text
