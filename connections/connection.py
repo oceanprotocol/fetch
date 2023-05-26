@@ -146,7 +146,7 @@ class OceanConnection(BaseSyncConnection):
             asset_did = kwargs["asset_did"]
             datatoken_amt = kwargs["datatoken_amt"]
 
-            if 'exchange_id' in kwargs:
+            if "exchange_id" in kwargs:
                 self.logger.info("Starting to buy DTs from fixed rate exchange...")
                 exchange_id = kwargs["exchange_id"]
                 max_cost_ocean = kwargs["max_cost_ocean"]
