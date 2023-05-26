@@ -146,7 +146,7 @@ class OceanConnection(BaseSyncConnection):
             asset_did = kwargs["asset_did"]
             datatoken_amt = kwargs["datatoken_amt"]
 
-            if "exchange_id" in kwargs.items():
+            if 'exchange_id' in kwargs:
                 self.logger.info("Starting to buy DTs from fixed rate exchange...")
                 exchange_id = kwargs["exchange_id"]
                 max_cost_ocean = kwargs["max_cost_ocean"]
@@ -206,7 +206,7 @@ class OceanConnection(BaseSyncConnection):
 
         if datatoken.balanceOf(self.wallet.address) < datatoken_amt:
             self.logger.info(f"Insufficient datatokens. Purchasing right now ...")
-            if "exchange_id" in kwargs.items():
+            if "exchange_id" in kwargs:
                 exchange_id = kwargs["exchange_id"]
                 max_cost_ocean = kwargs["max_cost_ocean"]
                 self._buy_dt_from_fre(
@@ -227,7 +227,7 @@ class OceanConnection(BaseSyncConnection):
             raise ValueError("Failed to pay for compute service after retrying.")
 
         try:
-            if "exchange_id" in kwargs.items():
+            if "exchange_id" in kwargs:
                 tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
                 order_tx_id = self.ocean.assets.pay_for_access_service(
                     asset=asset,
@@ -815,8 +815,8 @@ class OceanConnection(BaseSyncConnection):
             self.logger.info(f"balance: {self.wallet.balance()}")
         except (
             ValueError,
-            VirtualMachineError,
-            ContractNotFound,
+            brownie.exceptions.VirtualMachineError,
+            brownie.exceptions.ContractNotFound,
         ) as e:
             self.logger.error(
                 f"Failed to buy datatokens from FRE with error: {e}\n Retrying..."
