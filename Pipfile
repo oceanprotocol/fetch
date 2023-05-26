@@ -11,6 +11,7 @@ boto3 = "*"
 pipfile = "*"
 defusedxml = "*"
 ocean-lib = "==2.2.4"
+numpy = "*"
 
 [dev-packages]
 black = "*"
