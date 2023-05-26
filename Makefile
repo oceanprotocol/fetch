@@ -40,8 +40,8 @@ clean-test:
 
 .PHONY: lint
 lint:
-	pipenv run black src/packages/eightballer
-	pipenv run isort src/packages/eightballer
+	pipenv run black .
+	pipenv run isort .
 #	pipenv run vulture src/
 
 .PHONY: new_env

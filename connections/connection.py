@@ -19,8 +19,7 @@
 """Scaffold connection and channel."""
 import pickle
 import time
-import web3.exceptions
-import brownie.exceptions
+from brownie.exceptions import ContractNotFound, TransactionError, VirtualMachineError
 import os
 import ocean_lib.exceptions
 from datetime import datetime, timedelta, timezone
@@ -30,12 +29,10 @@ from brownie.network import accounts, chain, priority_fee, web3
 
 from aea.configurations.base import PublicId
 from aea.connections.base import BaseSyncConnection
-from packages.eightballer.protocols.ocean.message import OceanMessage
-from packages.eightballer.connections.ocean.utils import (
+from connections.utils import (
     convert_to_bytes_format,
     get_tx_dict,
 )
-from brownie.network import accounts
 from ocean_lib.example_config import get_config_dict
 from ocean_lib.models.compute_input import ComputeInput
 from ocean_lib.models.fixed_rate_exchange import OneExchange
@@ -50,7 +47,7 @@ Choose one of the possible implementations:
 Sync (inherited from BaseSyncConnection) or Async (inherited from Connection) connection and remove unused one.
 """
 
-CONNECTION_ID = PublicId.from_str("ocean:0.1.0")
+CONNECTION_ID = PublicId.from_str("oceanprotocol/connection:0.1.0")
 
 
 class OceanConnection(BaseSyncConnection):
@@ -79,6 +76,7 @@ class OceanConnection(BaseSyncConnection):
         :param kwargs: keyword arguments passed to component base
         """
         super().__init__(*args, **kwargs)
+        self.logger.setLevel(10)
 
     def main(self) -> None:
         """
@@ -114,21 +112,21 @@ class OceanConnection(BaseSyncConnection):
         message_type = kwargs["type"]
         self.logger.debug(f"Received {message_type} in connection")
 
-        if message_type == OceanMessage.Performative.DEPLOY_D2C:
+        if message_type == "DEPLOY_D2C":
             self._deploy_data_for_d2c(**kwargs)
-        if message_type == OceanMessage.Performative.DEPLOY_ALGORITHM:
+        if message_type == "DEPLOY_ALGORITHM":
             self._deploy_algorithm(**kwargs)
-        if message_type == OceanMessage.Performative.PERMISSION_DATASET:
+        if message_type == "PERMISSION_DATASET":
             self._permission_dataset(**kwargs)
-        if message_type == OceanMessage.Performative.D2C_JOB:
+        if message_type == "D2C_JOB":
             self._create_d2c_job(**kwargs)
-        if message_type == OceanMessage.Performative.DEPLOY_DATA_DOWNLOAD:
+        if message_type == "DEPLOY_DATA_DOWNLOAD":
             self._deploy_data_to_download(**kwargs)
-        if message_type == OceanMessage.Performative.CREATE_DISPENSER:
+        if message_type == "CREATE_DISPENSER":
             self._create_dispenser(**kwargs)
-        if message_type == OceanMessage.Performative.CREATE_FIXED_RATE_EXCHANGE:
+        if message_type == "CREATE_FIXED_RATE_EXCHANGE":
             self._create_fixed_rate(**kwargs)
-        if message_type == OceanMessage.Performative.DOWNLOAD_JOB:
+        if message_type == "DOWNLOAD_JOB":
             self._purchase_datatoken(**kwargs)
 
     def _purchase_datatoken(self, **kwargs):
@@ -148,7 +146,7 @@ class OceanConnection(BaseSyncConnection):
             asset_did = kwargs["asset_did"]
             datatoken_amt = kwargs["datatoken_amt"]
 
-            if "exchange_id" in kwargs.items():
+            if "exchange_id" in kwargs:
                 self.logger.info("Starting to buy DTs from fixed rate exchange...")
                 exchange_id = kwargs["exchange_id"]
                 max_cost_ocean = kwargs["max_cost_ocean"]
@@ -208,7 +206,7 @@ class OceanConnection(BaseSyncConnection):
 
         if datatoken.balanceOf(self.wallet.address) < datatoken_amt:
             self.logger.info(f"Insufficient datatokens. Purchasing right now ...")
-            if "exchange_id" in kwargs.items():
+            if "exchange_id" in kwargs:
                 exchange_id = kwargs["exchange_id"]
                 max_cost_ocean = kwargs["max_cost_ocean"]
                 self._buy_dt_from_fre(
@@ -229,7 +227,7 @@ class OceanConnection(BaseSyncConnection):
             raise ValueError("Failed to pay for compute service after retrying.")
 
         try:
-            if "exchange_id" in kwargs.items():
+            if "exchange_id" in kwargs:
                 tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
                 order_tx_id = self.ocean.assets.pay_for_access_service(
                     asset=asset,
@@ -289,7 +287,12 @@ class OceanConnection(BaseSyncConnection):
             self.logger.info(f"Dispenser created!")
 
             return msg
-        except (web3.exceptions.TransactionNotFound, ValueError) as e:
+        except (
+            ContractNotFound,
+            TransactionError,
+            VirtualMachineError,
+            ValueError,
+        ) as e:
             self.logger.error(
                 f"Failed to deploy dispenser with the following error: {e}. Retrying..."
             )
@@ -321,10 +324,15 @@ class OceanConnection(BaseSyncConnection):
                 "exchange_id": str(exchange_id),
                 "has_pricing_schema": True,
             }
-            self.logger.info(f"Fixed rate exchange created! Sending result to handler!")
+            self.logger.info(f"Fixed rate exchange created!")
 
             return msg
-        except (web3.exceptions.TransactionNotFound, ValueError) as e:
+        except (
+            ContractNotFound,
+            TransactionError,
+            VirtualMachineError,
+            ValueError,
+        ) as e:
             self.logger.error(
                 f"Failed to deploy fixed rate exchange with the following error {e}. Retrying..."
             )

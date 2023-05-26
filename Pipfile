@@ -10,7 +10,8 @@ aea-ledger-fetchai = "==1.2.4"
 boto3 = "*"
 pipfile = "*"
 defusedxml = "*"
-ocean-lib = "==2.3.3"
+ocean-lib = "==2.2.4"
+numpy = "*"
 
 [dev-packages]
 black = "*"
@@ -21,7 +22,7 @@ pytest-asyncio = "==0.12.0"
 pytest-cov = "==2.9.0"
 pytest-custom-exit-code = "==0.3.0"
 pytest-randomly = "==3.4.0"
-pytest-rerunfailures = "==9.0"
+pytest-rerunfailures = "*"
 requests = "*"
 
 [requires]
