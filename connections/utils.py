@@ -57,3 +57,68 @@ def convert_to_bytes_format(web3, data: str) -> bytes:
     assert isinstance(bytes_data, bytes), "Invalid data provided."
 
     return bytes_data
+
+
+def validate_args(**kwargs) -> (bool, str):
+    required_args_per_action = {
+        "DEPLOY_D2C": [
+            "description",
+            "name",
+            "author",
+            "license",
+            "dataset_url",
+            "has_pricing_schema",
+        ],
+        "DEPLOY_ALGORITHM": [
+            "description",
+            "name",
+            "author",
+            "license",
+            "language",
+            "format",
+            "version",
+            "entrypoint",
+            "image",
+            "tag",
+            "checksum",
+            "files_url",
+            "has_pricing_schema",
+        ],
+        "PERMISSION_DATASET": [
+            "data_did",
+            "algo_did",
+        ],
+        "D2C_JOB": [
+            "data_did",
+            "algo_did",
+        ],
+        "DEPLOY_DATA_DOWNLOAD": [
+            "description",
+            "name",
+            "author",
+            "license",
+            "dataset_url",
+            "has_pricing_schema",
+        ],
+        "CREATE_DISPENSER": [
+            "datatoken_address",
+        ],
+        "CREATE_FIXED_RATE_EXCHANGE": [
+            "datatoken_address",
+            "rate",
+            "ocean_amt",
+        ],
+        "DOWNLOAD_JOB": [
+            "datatoken_address",
+            "asset_did",
+            "datatoken_amt",
+        ],
+    }
+
+    for arg in required_args_per_action[kwargs["message_type"]]:
+        if arg not in kwargs:
+            return (
+                False,
+                f"'{arg}' is missing from the required arguments for {kwargs['message_type']}. Please add it.",
+            )
+    return True, ""

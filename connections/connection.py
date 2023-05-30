@@ -32,6 +32,7 @@ from aea.connections.base import BaseSyncConnection
 from connections.utils import (
     convert_to_bytes_format,
     get_tx_dict,
+    validate_args,
 )
 from ocean_lib.example_config import get_config_dict
 from ocean_lib.models.compute_input import ComputeInput
@@ -105,10 +106,23 @@ class OceanConnection(BaseSyncConnection):
 
     def on_send(self, **kwargs) -> None:
         """
-        Send an envelope.
+        Send a message.
 
         param kwargs: the kwargs to use.
         """
+        if "type" not in kwargs or kwargs["type"] not in [
+            "DEPLOY_D2C",
+            "DEPLOY_ALGORITHM",
+            "PERMISSION_DATASET",
+            "D2C_JOB",
+            "DEPLOY_DATA_DOWNLOAD",
+            "CREATE_DISPENSER",
+            "CREATE_FIXED_RATE_EXCHANGE",
+            "DOWNLOAD_JOB",
+        ]:
+            raise Exception(
+                "Message type is not correctly provided. Please add the message type according to your action."
+            )
         message_type = kwargs["type"]
         self.logger.debug(f"Received {message_type} in connection")
 
@@ -141,50 +155,54 @@ class OceanConnection(BaseSyncConnection):
         - optional: `exchange_id` if there exists a fixed rate exchange attached to the datatoken
         - optional: `max_cost_ocean` if there exists a fixed rate exchange attached to the datatoken
         """
-        try:
-            datatoken_address = kwargs["datatoken_address"]
-            asset_did = kwargs["asset_did"]
-            datatoken_amt = kwargs["datatoken_amt"]
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            try:
+                datatoken_address = kwargs["datatoken_address"]
+                asset_did = kwargs["asset_did"]
+                datatoken_amt = kwargs["datatoken_amt"]
 
-            if "exchange_id" in kwargs:
-                self.logger.info("Starting to buy DTs from fixed rate exchange...")
-                exchange_id = kwargs["exchange_id"]
-                max_cost_ocean = kwargs["max_cost_ocean"]
-                self._buy_dt_from_fre(
-                    exchange_id=exchange_id,
-                    datatoken_amt=datatoken_amt,
-                    max_cost_ocean=max_cost_ocean,
-                )
-                msg = {
-                    "type": "DOWNLOAD_JOB",
-                    "datatoken_address": datatoken_address,
-                    "datatoken_amt": datatoken_amt,
-                    "max_cost_ocean": max_cost_ocean,
-                    "asset_did": asset_did,
-                    "exchange_id": str(exchange_id),
-                    "has_pricing_schema": True,
-                }
-            else:
-                self.logger.info("Request DTs from the dispenser")
-                tx = self._dispense(
-                    datatoken_address=datatoken_address,
-                    datatoken_amt=datatoken_amt,
-                )
-                msg = {
-                    "type": "DOWNLOAD_JOB",
-                    "datatoken_address": datatoken_address,
-                    "datatoken_amt": datatoken_amt,
-                    "asset_did": asset_did,
-                    "order_tx_id": tx.txid,
-                    "has_pricing_schema": False,
-                }
+                if "exchange_id" in kwargs:
+                    self.logger.info("Starting to buy DTs from fixed rate exchange...")
+                    exchange_id = kwargs["exchange_id"]
+                    max_cost_ocean = kwargs["max_cost_ocean"]
+                    self._buy_dt_from_fre(
+                        exchange_id=exchange_id,
+                        datatoken_amt=datatoken_amt,
+                        max_cost_ocean=max_cost_ocean,
+                    )
+                    msg = {
+                        "type": "DOWNLOAD_JOB",
+                        "datatoken_address": datatoken_address,
+                        "datatoken_amt": datatoken_amt,
+                        "max_cost_ocean": max_cost_ocean,
+                        "asset_did": asset_did,
+                        "exchange_id": str(exchange_id),
+                        "has_pricing_schema": True,
+                    }
+                else:
+                    self.logger.info("Request DTs from the dispenser")
+                    tx = self._dispense(
+                        datatoken_address=datatoken_address,
+                        datatoken_amt=datatoken_amt,
+                    )
+                    msg = {
+                        "type": "DOWNLOAD_JOB",
+                        "datatoken_address": datatoken_address,
+                        "datatoken_amt": datatoken_amt,
+                        "asset_did": asset_did,
+                        "order_tx_id": tx.txid,
+                        "has_pricing_schema": False,
+                    }
 
-            self.logger.info(f"Purchased datatokens successfully!")
-            return msg
+                self.logger.info(f"Purchased datatokens successfully!")
+                return msg
 
-        except Exception as e:
-            self.logger.error("Couldn't purchase datatokens")
-            self.logger.error(e)
+            except Exception as e:
+                self.logger.error("Couldn't purchase datatokens")
+                self.logger.error(e)
 
     def _download_asset(self, retries: int = 2, **kwargs):
         """
@@ -200,66 +218,66 @@ class OceanConnection(BaseSyncConnection):
         - optional: `max_cost_ocean` if there exists a fixed rate exchange attached to the datatoken
         - optional: `order_tx_id` if there exists a dispenser attached to the datatoken
         """
-        did = kwargs["asset_did"]
-        datatoken = self.ocean.get_datatoken(kwargs["datatoken_address"])
-        datatoken_amt = kwargs["datatoken_amt"]
-
-        if datatoken.balanceOf(self.wallet.address) < datatoken_amt:
-            self.logger.info(f"Insufficient datatokens. Purchasing right now ...")
-            if "exchange_id" in kwargs:
-                exchange_id = kwargs["exchange_id"]
-                max_cost_ocean = kwargs["max_cost_ocean"]
-                self._buy_dt_from_fre(
-                    exchange_id=exchange_id,
-                    datatoken_amt=datatoken_amt,
-                    max_cost_ocean=max_cost_ocean,
-                )
-            else:
-                self._dispense(
-                    datatoken_address=kwargs["datatoken_address"],
-                    datatoken_amt=datatoken_amt,
-                )
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
         else:
-            self.logger.info(f"Already has sufficient datatokens.")
+            did = kwargs["asset_did"]
+            datatoken = self.ocean.get_datatoken(kwargs["datatoken_address"])
+            datatoken_amt = kwargs["datatoken_amt"]
 
-        asset = self.ocean.assets.resolve(did)
-        if retries == 0:
-            raise ValueError("Failed to pay for compute service after retrying.")
-
-        try:
-            if "exchange_id" in kwargs:
-                tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-                order_tx_id = self.ocean.assets.pay_for_access_service(
-                    asset=asset,
-                    tx_dict=tx_dict,
-                )
+            if datatoken.balanceOf(self.wallet.address) < datatoken_amt:
+                self.logger.info(f"Insufficient datatokens. Purchasing right now ...")
+                if "exchange_id" in kwargs:
+                    exchange_id = kwargs["exchange_id"]
+                    max_cost_ocean = kwargs["max_cost_ocean"]
+                    self._buy_dt_from_fre(
+                        exchange_id=exchange_id,
+                        datatoken_amt=datatoken_amt,
+                        max_cost_ocean=max_cost_ocean,
+                    )
+                else:
+                    self._dispense(
+                        datatoken_address=kwargs["datatoken_address"],
+                        datatoken_amt=datatoken_amt,
+                    )
             else:
-                order_tx_id = kwargs["order_tx_id"]
-            self.logger.info(f"Order tx: '{order_tx_id}'")
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
-            self.logger.error(
-                f"Failed to pay for access service with error: {e}\n Retrying..."
+                self.logger.info(f"Already has sufficient datatokens.")
+
+            asset = self.ocean.assets.resolve(did)
+            if retries == 0:
+                raise ValueError("Failed to pay for compute service after retrying.")
+
+            try:
+                if "exchange_id" in kwargs:
+                    tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
+                    order_tx_id = self.ocean.assets.pay_for_access_service(
+                        asset=asset,
+                        tx_dict=tx_dict,
+                    )
+                else:
+                    order_tx_id = kwargs["order_tx_id"]
+                self.logger.info(f"Order tx: '{order_tx_id}'")
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to pay for access service with error: {e}\n Retrying..."
+                )
+                self._download_asset(retries - 1, **kwargs)
+
+            # Download has begun for the agent. If the connection breaks, agent can request again by showing order_tx_id.
+            file_path = self.ocean.assets.download(
+                asset=asset,
+                consumer_wallet=self.wallet,
+                destination="./downloads/",
+                order_tx_id=order_tx_id,
             )
-            self._download_asset(retries - 1, **kwargs)
+            self.logger.info(f"file_path = {file_path}")
+            data = open(file_path, "rb").read()
 
-        # Download has begun for the agent. If the connection breaks, agent can request again by showing order_tx_id.
-        file_path = self.ocean.assets.download(
-            asset=asset,
-            consumer_wallet=self.wallet,
-            destination="./downloads/",
-            order_tx_id=order_tx_id,
-        )
-        self.logger.info(f"file_path = {file_path}")
-        data = open(file_path, "rb").read()
+            self.logger.info(f"Download completed!")
+            msg = {"type": "RESULTS", "data": data}
 
-        self.logger.info(f"Download completed!")
-        msg = {"type": "RESULTS", "data": data}
-
-        return msg
+            return msg
 
     def _create_dispenser(self, retries: int = 2, **kwargs):
         """
@@ -270,33 +288,32 @@ class OceanConnection(BaseSyncConnection):
         They are:
         - `datatoken_address`
         """
-        if retries == 0:
-            raise ValueError("Failed to deploy dispenser after retrying.")
-        try:
-            datatoken_address = kwargs["datatoken_address"]
-            self._create_dispenser_helper(datatoken_address)
-            datatoken = self.ocean.get_datatoken(datatoken_address)
-            dispenser_status = datatoken.dispenser_status().active
-            self.logger.info(f"Dispenser status: {dispenser_status}")
-            msg = {
-                "type": "DISPENSER_DEPLOYMENT_RECEIPT",
-                "datatoken_address": datatoken.address,
-                "dispenser_status": dispenser_status,
-                "has_pricing_schema": False,
-            }
-            self.logger.info(f"Dispenser created!")
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            if retries == 0:
+                raise ValueError("Failed to deploy dispenser after retrying.")
+            try:
+                datatoken_address = kwargs["datatoken_address"]
+                self._create_dispenser_helper(datatoken_address)
+                datatoken = self.ocean.get_datatoken(datatoken_address)
+                dispenser_status = datatoken.dispenser_status().active
+                self.logger.info(f"Dispenser status: {dispenser_status}")
+                msg = {
+                    "type": "DISPENSER_DEPLOYMENT_RECEIPT",
+                    "datatoken_address": datatoken.address,
+                    "dispenser_status": dispenser_status,
+                    "has_pricing_schema": False,
+                }
+                self.logger.info(f"Dispenser created!")
 
-            return msg
-        except (
-            ContractNotFound,
-            TransactionError,
-            VirtualMachineError,
-            ValueError,
-        ) as e:
-            self.logger.error(
-                f"Failed to deploy dispenser with the following error: {e}. Retrying..."
-            )
-            self._create_dispenser(retries - 1, **kwargs)
+                return msg
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to deploy dispenser with the following error: {e}. Retrying..."
+                )
+                self._create_dispenser(retries - 1, **kwargs)
 
     def _create_fixed_rate(self, retries: int = 2, **kwargs):
         """
@@ -309,34 +326,33 @@ class OceanConnection(BaseSyncConnection):
         - `rate`;
         - `ocean_amt`
         """
-        if retries == 0:
-            raise ValueError("Failed to deploy fixed rate exchange after retrying.")
-        try:
-            datatoken_address = kwargs["datatoken_address"]
-            ocean_amt = kwargs["ocean_amt"]
-            rate = kwargs["rate"]
-            exchange_id = self._create_fixed_rate_helper(
-                datatoken_address=datatoken_address, ocean_amt=ocean_amt, rate=rate
-            )
-            self.logger.info(f"Deployed fixed rate exchange: {exchange_id}")
-            msg = {
-                "type": "EXCHANGE_DEPLOYMENT_RECEIPT",
-                "exchange_id": str(exchange_id),
-                "has_pricing_schema": True,
-            }
-            self.logger.info(f"Fixed rate exchange created!")
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            if retries == 0:
+                raise ValueError("Failed to deploy fixed rate exchange after retrying.")
+            try:
+                datatoken_address = kwargs["datatoken_address"]
+                ocean_amt = kwargs["ocean_amt"]
+                rate = kwargs["rate"]
+                exchange_id = self._create_fixed_rate_helper(
+                    datatoken_address=datatoken_address, ocean_amt=ocean_amt, rate=rate
+                )
+                self.logger.info(f"Deployed fixed rate exchange: {exchange_id}")
+                msg = {
+                    "type": "EXCHANGE_DEPLOYMENT_RECEIPT",
+                    "exchange_id": str(exchange_id),
+                    "has_pricing_schema": True,
+                }
+                self.logger.info(f"Fixed rate exchange created!")
 
-            return msg
-        except (
-            ContractNotFound,
-            TransactionError,
-            VirtualMachineError,
-            ValueError,
-        ) as e:
-            self.logger.error(
-                f"Failed to deploy fixed rate exchange with the following error {e}. Retrying..."
-            )
-            self._create_fixed_rate(retries - 1, **kwargs)
+                return msg
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to deploy fixed rate exchange with the following error {e}. Retrying..."
+                )
+                self._create_fixed_rate(retries - 1, **kwargs)
 
     def _create_d2c_job(self, retries: int = 2, **kwargs):
         """
@@ -348,110 +364,69 @@ class OceanConnection(BaseSyncConnection):
         - `data_did`;
         - `algo_did`
         """
-        DATA_did = kwargs["data_did"]
-        ALG_did = kwargs["algo_did"]
-        DATA_DDO = self.ocean.assets.resolve(DATA_did)
-        ALG_DDO = self.ocean.assets.resolve(ALG_did)
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            DATA_did = kwargs["data_did"]
+            ALG_did = kwargs["algo_did"]
+            DATA_DDO = self.ocean.assets.resolve(DATA_did)
+            ALG_DDO = self.ocean.assets.resolve(ALG_did)
 
-        compute_service = DATA_DDO.services[1]
-        algo_service = ALG_DDO.services[0]
+            compute_service = DATA_DDO.services[1]
+            algo_service = ALG_DDO.services[0]
 
-        free_c2d_env = self.ocean.compute.get_free_c2d_environment(
-            service_endpoint=compute_service.service_endpoint,
-            chain_id=DATA_DDO.chain_id,
-        )
-
-        DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
-        ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
-
-        self.logger.info(f"Paying for dataset {DATA_did}...")
-        if retries == 0:
-            raise ValueError("Failed to pay for compute service after retrying.")
-        try:
-            tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-            self.logger.info(f"paying for compute service {datetime.now()}")
-            datasets, algorithm = self.ocean.assets.pay_for_compute_service(
-                datasets=[DATA_compute_input],
-                algorithm_data=ALGO_compute_input,
-                compute_environment=free_c2d_env["id"],
-                valid_until=int(
-                    (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
-                ),
-                consume_market_order_fee_address=compute_service.datatoken,
-                tx_dict=tx_dict,
-                consumer_address=free_c2d_env["consumerAddress"],
+            free_c2d_env = self.ocean.compute.get_free_c2d_environment(
+                service_endpoint=compute_service.service_endpoint,
+                chain_id=DATA_DDO.chain_id,
             )
-            self.logger.info(f"Finishing paying for compute service {datetime.now()}")
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
-            self.logger.error(
-                f"Failed to pay for compute service with error: {e}\n Retrying..."
-            )
-            self._create_d2c_job(retries - 1, **kwargs)
 
-        self.logger.info(
-            f"Paid for dataset {DATA_did} receipt: {[dataset.as_dictionary() for dataset in datasets]} with algorithm {algorithm.as_dictionary()}"
-        )
+            DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
+            ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
 
-        self.logger.info(f"Starting compute job....")
-        job_id = self.ocean.compute.start(
-            consumer_wallet=self.wallet,
-            dataset=datasets[0],
-            compute_environment=free_c2d_env["id"],
-            algorithm=algorithm,
-        )
-
-        status = self.ocean.compute.status(
-            DATA_DDO, compute_service, job_id, self.wallet
-        )
-        self.logger.info(f"got job status: {status}")
-
-        assert (
-            status and status["ok"]
-        ), f"Something not right about the compute job, got status: {status}"
-
-        self.logger.info(f"Started compute job with id: {job_id}")
-
-        for _ in range(0, 200):
-            status = self.ocean.compute.status(
-                DATA_DDO, compute_service, job_id, self.wallet
-            )
-            if status.get("statusText") == "Job finished":
-                break
-
-            time.sleep(5)
-
-        status = self.ocean.compute.status(
-            DATA_DDO, compute_service, job_id, self.wallet
-        )
-        assert status[
-            "results"
-        ], f"Something not right about the compute job, results were not fetched: {status} "
-
-        self.logger.info(f"Status results: {status['results']}\n status: {status}")
-
-        function_result = []
-        for i in range(len(status["results"])):
-            result = None
-            result_type = status["results"][i]["type"]
-            if result_type == "output":
-                result = self.ocean.compute.result(
-                    DATA_DDO, compute_service, job_id, i, self.wallet
+            self.logger.info(f"Paying for dataset {DATA_did}...")
+            if retries == 0:
+                raise ValueError("Failed to pay for compute service after retrying.")
+            try:
+                tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
+                self.logger.info(f"paying for compute service {datetime.now()}")
+                datasets, algorithm = self.ocean.assets.pay_for_compute_service(
+                    datasets=[DATA_compute_input],
+                    algorithm_data=ALGO_compute_input,
+                    compute_environment=free_c2d_env["id"],
+                    valid_until=int(
+                        (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
+                    ),
+                    consume_market_order_fee_address=compute_service.datatoken,
+                    tx_dict=tx_dict,
+                    consumer_address=free_c2d_env["consumerAddress"],
                 )
-                self.logger.info(f"result: {result}")
-                function_result.append(result)
+                self.logger.info(
+                    f"Finishing paying for compute service {datetime.now()}"
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to pay for compute service with error: {e}\n Retrying..."
+                )
+                self._create_d2c_job(retries - 1, **kwargs)
 
-        assert len(function_result) > 0, "empty results"
-        model = [pickle.loads(res) for res in function_result]
-        assert len(model) > 0, "Unpickle result unsuccessful"
+            self.logger.info(
+                f"Paid for dataset {DATA_did} receipt: {[dataset.as_dictionary() for dataset in datasets]} with algorithm {algorithm.as_dictionary()}"
+            )
 
-        msg = {"type": "RESULTS", "model": model}
-        self.logger.info(f"Completed D2C!")
+            self.logger.info(f"Starting compute job....")
+            job_id = self.ocean.compute.start(
+                consumer_wallet=self.wallet,
+                dataset=datasets[0],
+                compute_environment=free_c2d_env["id"],
+                algorithm=algorithm,
+            )
 
-        return msg
+            self.logger.info(f"Started compute job with job id: {job_id}")
+
+            msg = {"type": "RESULTS", "job_id": job_id, "data_did": DATA_DDO.did}
+
+            return msg
 
     def _permission_dataset(self, retries: int = 2, **kwargs):
         """
@@ -463,46 +438,46 @@ class OceanConnection(BaseSyncConnection):
         - `data_did`;
         - `algo_did`
         """
-        data_ddo = self.ocean.assets.resolve(kwargs["data_did"])
-        algo_ddo = self.ocean.assets.resolve(kwargs["algo_did"])
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            data_ddo = self.ocean.assets.resolve(kwargs["data_did"])
+            algo_ddo = self.ocean.assets.resolve(kwargs["algo_did"])
 
-        if data_ddo is None or algo_ddo is None:
-            raise ValueError(
-                f"Unable to loaded the assets from their DIDs. Please confirm correct deployment on Ocean!"
-            )
+            if data_ddo is None or algo_ddo is None:
+                raise ValueError(
+                    f"Unable to loaded the assets from their DIDs. Please confirm correct deployment on Ocean!"
+                )
 
-        compute_service = data_ddo.services[1]
-        compute_service.add_publisher_trusted_algorithm(algo_ddo)
+            compute_service = data_ddo.services[1]
+            compute_service.add_publisher_trusted_algorithm(algo_ddo)
 
-        if retries == 0:
-            raise ValueError("Failed to create data asset after retrying.")
-        try:
-            tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-            data_ddo = self.ocean.assets.update(
-                data_ddo,
-                tx_dict,
-            )
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
-            self.logger.error(
-                f"Failed to update asset permissions with error: {e}\n Retrying..."
-            )
-            self._permission_dataset(retries - 1, **kwargs)
+            if retries == 0:
+                raise ValueError("Failed to create data asset after retrying.")
+            try:
+                tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
+                data_ddo = self.ocean.assets.update(
+                    data_ddo,
+                    tx_dict,
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to update asset permissions with error: {e}\n Retrying..."
+                )
+                self._permission_dataset(retries - 1, **kwargs)
 
-        msg = {
-            "type": "DEPLOYMENT_RECEIPT",
-            "did": data_ddo.did,
-            "datatoken_contract_address": data_ddo.datatokens[0].get("address"),
-        }
+            msg = {
+                "type": "DEPLOYMENT_RECEIPT",
+                "did": data_ddo.did,
+                "datatoken_contract_address": data_ddo.datatokens[0].get("address"),
+            }
 
-        self.logger.info(f"Permissions of dataset configured successfully.")
+            self.logger.info(f"Permissions of dataset configured successfully.")
 
-        return msg
+            return msg
 
-    def _deploy_data_to_download(self, **kwargs):
+    def _deploy_data_to_download(self, retries: int = 2, **kwargs):
         """
         Creates an Ocean asset with access service.
 
@@ -515,48 +490,49 @@ class OceanConnection(BaseSyncConnection):
         - `dataset_url`;
         - `has_pricing_schema`
         """
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            if retries == 0:
+                raise ValueError("Failed to create data asset after retrying.")
 
-        DATA_metadata = {
-            "created": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "description": kwargs["description"],
-            "name": kwargs["name"],
-            "type": "dataset",
-            "author": kwargs["author"],
-            "license": kwargs["license"],
-        }
-        try:
-            tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-            (
-                DATA_data_nft,
-                DATA_datatoken,
-                DATA_ddo,
-            ) = self.ocean.assets.create_url_asset(
-                kwargs["name"],
-                kwargs["dataset_url"],
-                tx_dict,
-                metadata=DATA_metadata,
-                wait_for_aqua=True,
-            )
+            DATA_metadata = {
+                "created": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "description": kwargs["description"],
+                "name": kwargs["name"],
+                "type": "dataset",
+                "author": kwargs["author"],
+                "license": kwargs["license"],
+            }
+            try:
+                tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
+                (
+                    DATA_data_nft,
+                    DATA_datatoken,
+                    DATA_ddo,
+                ) = self.ocean.assets.create_url_asset(
+                    kwargs["name"],
+                    kwargs["dataset_url"],
+                    tx_dict,
+                    metadata=DATA_metadata,
+                    wait_for_aqua=True,
+                )
 
-            self.logger.info(f"DATA did = '{DATA_ddo.did}'")
-        except ocean_lib.exceptions.AquariusError as error:
-            self.logger.error(f"Error with creating asset. {error}")
-            msg = error.args[0]
-            if "is already registered to another asset." in msg:
-                self.logger.error(f"Trying to resolve pre-existing did..")
-                DATA_ddo = self.ocean.assets.resolve(msg.split(" ")[2])
+                self.logger.info(f"DATA did = '{DATA_ddo.did}'")
+            except Exception as error:
+                self.logger.error(f"Error with creating asset. {error}. Retrying...")
+                self._deploy_data_to_download(retries - 1, **kwargs)
 
-        self.logger.info(f"Ensure asset is cached in aquarius")
+            msg = {
+                "type": "DEPLOYMENT_RECEIPT",
+                "did": DATA_ddo.did,
+                "datatoken_contract_address": DATA_datatoken.address,
+                "has_pricing_schema": kwargs["has_pricing_schema"],
+            }
 
-        msg = {
-            "type": "DEPLOYMENT_RECEIPT",
-            "did": DATA_ddo.did,
-            "datatoken_contract_address": DATA_datatoken.address,
-            "has_pricing_schema": kwargs["has_pricing_schema"],
-        }
-
-        return msg
+            return msg
 
     def _deploy_data_for_d2c(self, retries: int = 2, **kwargs):
         """
@@ -572,53 +548,53 @@ class OceanConnection(BaseSyncConnection):
         - `dataset_url`;
         - `has_pricing_schema`
         """
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            if retries == 0:
+                raise ValueError("Failed to create data asset after retrying.")
 
-        DATA_metadata = {
-            "created": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "description": kwargs["description"],
-            "name": kwargs["name"],
-            "type": "dataset",
-            "author": kwargs["author"],
-            "license": kwargs["license"],
-        }
+            DATA_metadata = {
+                "created": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "description": kwargs["description"],
+                "name": kwargs["name"],
+                "type": "dataset",
+                "author": kwargs["author"],
+                "license": kwargs["license"],
+            }
 
-        if retries == 0:
-            raise ValueError("Failed to create data asset after retrying.")
-        try:
-            tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-            (
-                DATA_data_nft,
-                DATA_datatoken,
-                DATA_ddo,
-            ) = self.ocean.assets.create_url_asset(
-                kwargs["name"],
-                kwargs["dataset_url"],
-                tx_dict,
-                metadata=DATA_metadata,
-                with_compute=True,
-                wait_for_aqua=True,
-            )
+            try:
+                tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
+                (
+                    DATA_data_nft,
+                    DATA_datatoken,
+                    DATA_ddo,
+                ) = self.ocean.assets.create_url_asset(
+                    kwargs["name"],
+                    kwargs["dataset_url"],
+                    tx_dict,
+                    metadata=DATA_metadata,
+                    with_compute=True,
+                    wait_for_aqua=True,
+                )
 
-            self.logger.info(f"DATA did = '{DATA_ddo.did}'")
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
-            self.logger.error(
-                f"Failed to deploy a data NFT and a datatoken with error: {e}\n Retrying..."
-            )
-            self._deploy_data_for_d2c(retries - 1, **kwargs)
+                self.logger.info(f"DATA did = '{DATA_ddo.did}'")
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to deploy a data NFT and a datatoken with error: {e}\n Retrying..."
+                )
+                self._deploy_data_for_d2c(retries - 1, **kwargs)
 
-        msg = {
-            "type": "DEPLOYMENT_RECEIPT",
-            "did": DATA_ddo.did,
-            "datatoken_contract_address": DATA_datatoken.address,
-            "has_pricing_schema": kwargs["has_pricing_schema"],
-        }
+            msg = {
+                "type": "DEPLOYMENT_RECEIPT",
+                "did": DATA_ddo.did,
+                "datatoken_contract_address": DATA_datatoken.address,
+                "has_pricing_schema": kwargs["has_pricing_schema"],
+            }
 
-        return msg
+            return msg
 
     def _deploy_algorithm(self, retries: int = 2, **kwargs):
         """
@@ -627,7 +603,6 @@ class OceanConnection(BaseSyncConnection):
         param retries: number of retries for creating data for compute.
         param kwargs: necessary parameters to use.
         They are:
-        - `date_created`;
         - `description`;
         - `name`;
         - `author`;
@@ -642,64 +617,62 @@ class OceanConnection(BaseSyncConnection):
         - `files_url`;
         - `has_pricing_schema`
         """
-
-        ALGO_date_created = kwargs["date_created"]
-        ALGO_metadata = {
-            "created": ALGO_date_created,
-            "updated": ALGO_date_created,
-            "description": kwargs["description"],
-            "name": kwargs["name"],
-            "type": "algorithm",
-            "author": kwargs["author"],
-            "license": kwargs["license"],
-            "algorithm": {
-                "language": kwargs["language"],
-                "format": kwargs["format"],
-                "version": kwargs["version"],
-                "container": {
-                    "entrypoint": kwargs["entrypoint"],
-                    "image": kwargs["image"],
-                    "tag": kwargs["tag"],
-                    "checksum": kwargs["checksum"],
+        valid, validation_message = validate_args(**kwargs)
+        if not valid:
+            raise Exception(f"{validation_message}")
+        else:
+            if retries == 0:
+                raise ValueError("Failed to deploy an algorithm after retrying.")
+            ALGO_metadata = {
+                "created": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "description": kwargs["description"],
+                "name": kwargs["name"],
+                "type": "algorithm",
+                "author": kwargs["author"],
+                "license": kwargs["license"],
+                "algorithm": {
+                    "language": kwargs["language"],
+                    "format": kwargs["format"],
+                    "version": kwargs["version"],
+                    "container": {
+                        "entrypoint": kwargs["entrypoint"],
+                        "image": kwargs["image"],
+                        "tag": kwargs["tag"],
+                        "checksum": kwargs["checksum"],
+                    },
                 },
-            },
-        }
+            }
 
-        if retries == 0:
-            raise ValueError("Failed to deploy an algorithm after retrying.")
-        try:
-            tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-            (
-                ALGO_data_nft,
-                ALGO_datatoken,
-                ALGO_ddo,
-            ) = self.ocean.assets.create_algo_asset(
-                kwargs["name"],
-                kwargs["files_url"],
-                tx_dict,
-                metadata=ALGO_metadata,
-                wait_for_aqua=True,
-            )
+            try:
+                tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
+                (
+                    ALGO_data_nft,
+                    ALGO_datatoken,
+                    ALGO_ddo,
+                ) = self.ocean.assets.create_algo_asset(
+                    kwargs["name"],
+                    kwargs["files_url"],
+                    tx_dict,
+                    metadata=ALGO_metadata,
+                    wait_for_aqua=True,
+                )
 
-            self.logger.info(f"ALGO did = '{ALGO_ddo.did}'")
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
-            self.logger.error(
-                f"Failed to create an ALGO asset with error: {e}\n Retrying..."
-            )
-            self._deploy_algorithm(retries - 1, **kwargs)
+                self.logger.info(f"ALGO did = '{ALGO_ddo.did}'")
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to create an ALGO asset with error: {e}\n Retrying..."
+                )
+                self._deploy_algorithm(retries - 1, **kwargs)
 
-        msg = {
-            "type": "DEPLOYMENT_RECEIPT",
-            "did": ALGO_ddo.did,
-            "datatoken_contract_address": ALGO_datatoken.address,
-            "has_pricing_schema": kwargs["has_pricing_schema"],
-        }
+            msg = {
+                "type": "DEPLOYMENT_RECEIPT",
+                "did": ALGO_ddo.did,
+                "datatoken_contract_address": ALGO_datatoken.address,
+                "has_pricing_schema": kwargs["has_pricing_schema"],
+            }
 
-        return msg
+            return msg
 
     def _create_dispenser_helper(self, datatoken_address):
         """
@@ -813,11 +786,7 @@ class OceanConnection(BaseSyncConnection):
                 consume_market_fee=Web3.toWei("0.01", "ether"),
             )
             self.logger.info(f"balance: {self.wallet.balance()}")
-        except (
-            ValueError,
-            brownie.exceptions.VirtualMachineError,
-            brownie.exceptions.ContractNotFound,
-        ) as e:
+        except Exception as e:
             self.logger.error(
                 f"Failed to buy datatokens from FRE with error: {e}\n Retrying..."
             )
