@@ -115,10 +115,10 @@ def validate_args(**kwargs) -> (bool, str):
         ],
     }
 
-    for arg in required_args_per_action[kwargs["message_type"]]:
+    for arg in required_args_per_action[kwargs["type"]]:
         if arg not in kwargs:
             return (
                 False,
-                f"'{arg}' is missing from the required arguments for {kwargs['message_type']}. Please add it.",
+                f"'{arg}' is missing from the required arguments for {kwargs['type']}. Please add it.",
             )
     return True, ""
