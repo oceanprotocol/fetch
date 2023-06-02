@@ -45,7 +45,7 @@ cd fetch
 pipenv shell
 ```
 
-Then, set keys in the same console:
+Then, split into 2 terminals (one for `seller`/`publisher` and one for `buyer`/`consumer`) & set the keys for both:
 
 ```bash
 # connect to Fetch network

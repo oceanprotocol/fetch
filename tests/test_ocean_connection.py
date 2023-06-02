@@ -28,7 +28,7 @@ def test_deploy_c2d_data_asset(caplog):
     ocean.on_connect()
 
     dataset = {
-        "type": "DEPLOY_D2C",
+        "type": "DEPLOY_C2D",
         "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
         "name": "example",
         "description": "example",
@@ -40,7 +40,7 @@ def test_deploy_c2d_data_asset(caplog):
     ocean.on_send(**dataset)
 
     assert "connected to Ocean with config.network_name = 'development'" in caplog.text
-    assert "Received DEPLOY_D2C in connection" in caplog.text
+    assert "Received DEPLOY_C2D in connection" in caplog.text
     assert "DATA did = 'did:op:" in caplog.text
     did = caplog.records[-1].msg[12:-1]
     assert did.startswith("did:op:")
@@ -119,7 +119,7 @@ def test_deploy_fixed_rate_exchange(caplog):
     )
 
     dataset = {
-        "type": "DEPLOY_D2C",
+        "type": "DEPLOY_C2D",
         "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
         "name": "example",
         "description": "example",
@@ -207,7 +207,7 @@ def test_deploy_dispenser(caplog):
     ocean.on_connect()
 
     dataset = {
-        "type": "DEPLOY_D2C",
+        "type": "DEPLOY_C2D",
         "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
         "name": "example",
         "description": "example",
@@ -286,7 +286,7 @@ def test_permission_dataset(caplog):
     ocean.on_connect()
 
     dataset = {
-        "type": "DEPLOY_D2C",
+        "type": "DEPLOY_C2D",
         "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
         "name": "example",
         "description": "example",

@@ -1,12 +1,14 @@
 import asyncio
 import os
+import pickle
+import time
 
 from aea.configurations.base import ConnectionConfig
 
 from connections.connection import OceanConnection
 
 
-def test_compute_flow(caplog):
+def test_compute_flow(caplog, consumer_wallet):
     """Tests compute flow."""
 
     ocean = OceanConnection(
@@ -26,7 +28,7 @@ def test_compute_flow(caplog):
     ocean.on_connect()
 
     dataset = {
-        "type": "DEPLOY_D2C",
+        "type": "DEPLOY_C2D",
         "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
         "name": "example",
         "description": "example",
@@ -124,8 +126,48 @@ def test_compute_flow(caplog):
 
     ocean.on_send(**receipt)
 
-    c2d_job = {"type": "D2C_JOB", "data_did": DATA_did, "algo_did": ALGO_did}
+    c2d_job = {"type": "C2D_JOB", "data_did": DATA_did, "algo_did": ALGO_did}
 
     ocean.on_send(**c2d_job)
 
-    assert "Completed D2C!" in caplog.text
+    assert "Started compute job with job id" in caplog.text
+    job_id = caplog.records[-1].msg[33:]
+    compute_service = DATA_ddo.services[1]
+
+    status = ocean.ocean.compute.status(
+        DATA_ddo, compute_service, job_id, consumer_wallet
+    )
+
+    assert (
+        status and status["ok"]
+    ), f"Something not right about the compute job, got status: {status}"
+
+    for _ in range(0, 200):
+        status = ocean.ocean.compute.status(
+            DATA_ddo, compute_service, job_id, consumer_wallet
+        )
+        if status.get("statusText") == "Job finished":
+            break
+
+        time.sleep(5)
+
+    status = ocean.ocean.compute.status(
+        DATA_ddo, compute_service, job_id, consumer_wallet
+    )
+    assert status[
+        "results"
+    ], f"Something not right about the compute job, results were not fetched: {status} "
+
+    function_result = []
+    for i in range(len(status["results"])):
+        result = None
+        result_type = status["results"][i]["type"]
+        if result_type == "output":
+            result = ocean.ocean.compute.result(
+                DATA_ddo, compute_service, job_id, i, consumer_wallet
+            )
+            function_result.append(result)
+
+    assert len(function_result) > 0, "empty results"
+    model = [pickle.loads(res) for res in function_result]
+    assert len(model) > 0, "Unpickle result unsuccessful"

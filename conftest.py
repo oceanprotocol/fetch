@@ -19,3 +19,8 @@ def setup_all():
 @pytest.fixture
 def publisher_wallet():
     return accounts.add(os.getenv("SELLER_AEA_KEY_ETHEREUM"))
+
+
+@pytest.fixture
+def consumer_wallet():
+    return accounts.add(os.getenv("BUYER_AEA_KEY_ETHEREUM"))
