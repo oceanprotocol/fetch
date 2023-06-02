@@ -61,7 +61,7 @@ def test_validation_errors():
     ocean.on_connect()
     with pytest.raises(Exception) as e:
         kwargs = {"some_key": "some_value"}
-        ocean.send(**kwargs)
+        ocean.on_send(**kwargs)
 
     assert (
         e.value.args[0]
