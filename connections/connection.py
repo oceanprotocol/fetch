@@ -17,11 +17,7 @@
 #
 # ------------------------------------------------------------------------------
 """Scaffold connection and channel."""
-import pickle
-import time
-from brownie.exceptions import ContractNotFound, TransactionError, VirtualMachineError
 import os
-import ocean_lib.exceptions
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from brownie.network import accounts, chain, priority_fee, web3
@@ -38,6 +34,7 @@ from ocean_lib.example_config import get_config_dict
 from ocean_lib.models.compute_input import ComputeInput
 from ocean_lib.models.fixed_rate_exchange import OneExchange
 from ocean_lib.ocean.ocean import Ocean
+from ocean_lib.ocean.util import to_wei
 from ocean_lib.web3_internal.constants import ZERO_ADDRESS
 from ocean_lib.web3_internal.utils import connect_to_network
 from web3.main import Web3
@@ -385,6 +382,15 @@ class OceanConnection(BaseSyncConnection):
                     chain_id=DATA_DDO.chain_id,
                 )[0]
                 self.logger.info(f"c2d env: {c2d_env}")
+
+                if "feeToken" in c2d_env.keys():
+                    fee_datatoken = self.ocean.get_datatoken(c2d_env["feeToken"])
+                    fee_datatoken.approve(
+                        compute_service.datatoken, to_wei(100), {"from": self.wallet}
+                    )
+                    fee_datatoken.approve(
+                        c2d_env["consumerAddress"], to_wei(100), {"from": self.wallet}
+                    )
 
                 DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
                 ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
