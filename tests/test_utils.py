@@ -67,3 +67,17 @@ def test_validation_errors():
         e.value.args[0]
         == "Message type is not correctly provided. Please add the message type according to your action."
     )
+
+    # Test validation for _permission_dataset with missing key
+
+    with pytest.raises(Exception) as e:
+        permission = {
+            "type": "PERMISSION_DATASET",
+            "data_did": "did:op:937598370914u1047298",
+        }
+        ocean.on_send(**permission)
+
+    assert (
+        e.value.args[0]
+        == f"'algo_did' is missing from the required arguments for PERMISSION_DATASET. Please add it."
+    )

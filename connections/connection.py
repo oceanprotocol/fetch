@@ -384,6 +384,7 @@ class OceanConnection(BaseSyncConnection):
                     service_endpoint=compute_service.service_endpoint,
                     chain_id=DATA_DDO.chain_id,
                 )[0]
+                self.logger.info(f"c2d env: {c2d_env}")
 
                 DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
                 ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
