@@ -111,10 +111,10 @@ class OceanConnection(BaseSyncConnection):
         param kwargs: the kwargs to use.
         """
         if "type" not in kwargs or kwargs["type"] not in [
-            "DEPLOY_D2C",
+            "DEPLOY_C2D",
             "DEPLOY_ALGORITHM",
             "PERMISSION_DATASET",
-            "D2C_JOB",
+            "C2D_JOB",
             "DEPLOY_DATA_DOWNLOAD",
             "CREATE_DISPENSER",
             "CREATE_FIXED_RATE_EXCHANGE",
@@ -126,14 +126,14 @@ class OceanConnection(BaseSyncConnection):
         message_type = kwargs["type"]
         self.logger.debug(f"Received {message_type} in connection")
 
-        if message_type == "DEPLOY_D2C":
-            self._deploy_data_for_d2c(**kwargs)
+        if message_type == "DEPLOY_C2D":
+            self._deploy_data_for_C2D(**kwargs)
         if message_type == "DEPLOY_ALGORITHM":
             self._deploy_algorithm(**kwargs)
         if message_type == "PERMISSION_DATASET":
             self._permission_dataset(**kwargs)
-        if message_type == "D2C_JOB":
-            self._create_d2c_job(**kwargs)
+        if message_type == "C2D_JOB":
+            self._create_C2D_job(**kwargs)
         if message_type == "DEPLOY_DATA_DOWNLOAD":
             self._deploy_data_to_download(**kwargs)
         if message_type == "CREATE_DISPENSER":
@@ -354,7 +354,7 @@ class OceanConnection(BaseSyncConnection):
                 )
                 self._create_fixed_rate(retries - 1, **kwargs)
 
-    def _create_d2c_job(self, retries: int = 4, **kwargs):
+    def _create_C2D_job(self, retries: int = 4, **kwargs):
         """
         Pays for compute service & starts the compute job.
 
@@ -404,7 +404,7 @@ class OceanConnection(BaseSyncConnection):
                 self.logger.error(
                     f"Failed to pay for compute service with error: {e}\n Retrying..."
                 )
-                self._create_d2c_job(retries - 1, **kwargs)
+                self._create_C2D_job(retries - 1, **kwargs)
 
             self.logger.info(
                 f"Paid for dataset {DATA_did} receipt: {[dataset.as_dictionary() for dataset in datasets]} with algorithm {algorithm.as_dictionary()}"
@@ -530,7 +530,7 @@ class OceanConnection(BaseSyncConnection):
 
             return msg
 
-    def _deploy_data_for_d2c(self, retries: int = 2, **kwargs):
+    def _deploy_data_for_C2D(self, retries: int = 2, **kwargs):
         """
         Creates data NFT, datatoken & data asset for compute.
 
@@ -581,7 +581,7 @@ class OceanConnection(BaseSyncConnection):
                 self.logger.error(
                     f"Failed to deploy a data NFT and a datatoken with error: {e}\n Retrying..."
                 )
-                self._deploy_data_for_d2c(retries - 1, **kwargs)
+                self._deploy_data_for_C2D(retries - 1, **kwargs)
 
             msg = {
                 "type": "DEPLOYMENT_RECEIPT",

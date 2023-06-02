@@ -28,7 +28,7 @@ def test_compute_flow(caplog, consumer_wallet):
     ocean.on_connect()
 
     dataset = {
-        "type": "DEPLOY_D2C",
+        "type": "DEPLOY_C2D",
         "dataset_url": "https://raw.githubusercontent.com/oceanprotocol/c2d-examples/main/branin_and_gpr/branin.arff",
         "name": "example",
         "description": "example",
@@ -126,7 +126,7 @@ def test_compute_flow(caplog, consumer_wallet):
 
     ocean.on_send(**receipt)
 
-    c2d_job = {"type": "D2C_JOB", "data_did": DATA_did, "algo_did": ALGO_did}
+    c2d_job = {"type": "C2D_JOB", "data_did": DATA_did, "algo_did": ALGO_did}
 
     ocean.on_send(**c2d_job)
 

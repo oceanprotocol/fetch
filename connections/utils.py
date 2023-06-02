@@ -61,7 +61,7 @@ def convert_to_bytes_format(web3, data: str) -> bytes:
 
 def validate_args(**kwargs) -> (bool, str):
     required_args_per_action = {
-        "DEPLOY_D2C": [
+        "DEPLOY_C2D": [
             "description",
             "name",
             "author",
@@ -88,7 +88,7 @@ def validate_args(**kwargs) -> (bool, str):
             "data_did",
             "algo_did",
         ],
-        "D2C_JOB": [
+        "C2D_JOB": [
             "data_did",
             "algo_did",
         ],
