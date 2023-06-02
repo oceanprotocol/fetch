@@ -380,10 +380,10 @@ class OceanConnection(BaseSyncConnection):
             if retries == 0:
                 raise ValueError("Failed to pay for compute service after retrying.")
             try:
-                free_c2d_env = self.ocean.compute.get_free_c2d_environment(
+                c2d_env = self.ocean.compute.get_c2d_environment(
                     service_endpoint=compute_service.service_endpoint,
                     chain_id=DATA_DDO.chain_id,
-                )
+                )[0]
 
                 DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
                 ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
@@ -392,13 +392,13 @@ class OceanConnection(BaseSyncConnection):
                 datasets, algorithm = self.ocean.assets.pay_for_compute_service(
                     datasets=[DATA_compute_input],
                     algorithm_data=ALGO_compute_input,
-                    compute_environment=free_c2d_env["id"],
+                    compute_environment=c2d_env["id"],
                     valid_until=int(
-                        (datetime.now(timezone.utc) + timedelta(days=1)).timestamp()
+                        (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
                     ),
                     consume_market_order_fee_address=compute_service.datatoken,
                     tx_dict=tx_dict,
-                    consumer_address=free_c2d_env["consumerAddress"],
+                    consumer_address=c2d_env["consumerAddress"],
                 )
             except Exception as e:
                 self.logger.error(
@@ -414,7 +414,7 @@ class OceanConnection(BaseSyncConnection):
             job_id = self.ocean.compute.start(
                 consumer_wallet=self.wallet,
                 dataset=datasets[0],
-                compute_environment=free_c2d_env["id"],
+                compute_environment=c2d_env["id"],
                 algorithm=algorithm,
             )
 
