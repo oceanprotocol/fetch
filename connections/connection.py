@@ -380,7 +380,7 @@ class OceanConnection(BaseSyncConnection):
             if retries == 0:
                 raise ValueError("Failed to pay for compute service after retrying.")
             try:
-                c2d_env = self.ocean.compute.get_c2d_environment(
+                c2d_env = self.ocean.compute.get_c2d_environments(
                     service_endpoint=compute_service.service_endpoint,
                     chain_id=DATA_DDO.chain_id,
                 )[0]
