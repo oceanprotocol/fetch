@@ -121,4 +121,5 @@ def validate_args(**kwargs) -> (bool, str):
                 False,
                 f"'{arg}' is missing from the required arguments for {kwargs['type']}. Please add it.",
             )
+
     return True, ""

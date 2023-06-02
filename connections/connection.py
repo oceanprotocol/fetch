@@ -376,20 +376,19 @@ class OceanConnection(BaseSyncConnection):
             compute_service = DATA_DDO.services[1]
             algo_service = ALG_DDO.services[0]
 
-            free_c2d_env = self.ocean.compute.get_free_c2d_environment(
-                service_endpoint=compute_service.service_endpoint,
-                chain_id=DATA_DDO.chain_id,
-            )
-
-            DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
-            ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
-
             self.logger.info(f"Paying for dataset {DATA_did}...")
             if retries == 0:
                 raise ValueError("Failed to pay for compute service after retrying.")
             try:
+                free_c2d_env = self.ocean.compute.get_free_c2d_environment(
+                    service_endpoint=compute_service.service_endpoint,
+                    chain_id=DATA_DDO.chain_id,
+                )
+
+                DATA_compute_input = ComputeInput(DATA_DDO, compute_service)
+                ALGO_compute_input = ComputeInput(ALG_DDO, algo_service)
+
                 tx_dict = get_tx_dict(self.ocean_config, self.wallet, chain)
-                self.logger.info(f"paying for compute service {datetime.now()}")
                 datasets, algorithm = self.ocean.assets.pay_for_compute_service(
                     datasets=[DATA_compute_input],
                     algorithm_data=ALGO_compute_input,
@@ -400,9 +399,6 @@ class OceanConnection(BaseSyncConnection):
                     consume_market_order_fee_address=compute_service.datatoken,
                     tx_dict=tx_dict,
                     consumer_address=free_c2d_env["consumerAddress"],
-                )
-                self.logger.info(
-                    f"Finishing paying for compute service {datetime.now()}"
                 )
             except Exception as e:
                 self.logger.error(
@@ -424,7 +420,7 @@ class OceanConnection(BaseSyncConnection):
 
             self.logger.info(f"Started compute job with job id: {job_id}")
 
-            msg = {"type": "RESULTS", "job_id": job_id, "data_did": DATA_DDO.did}
+            msg = {"type": "RESULTS", "job_id": job_id}
 
             return msg
 
