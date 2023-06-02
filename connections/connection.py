@@ -354,7 +354,7 @@ class OceanConnection(BaseSyncConnection):
                 )
                 self._create_fixed_rate(retries - 1, **kwargs)
 
-    def _create_d2c_job(self, retries: int = 2, **kwargs):
+    def _create_d2c_job(self, retries: int = 4, **kwargs):
         """
         Pays for compute service & starts the compute job.
 
