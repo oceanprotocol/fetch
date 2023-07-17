@@ -52,8 +52,8 @@ def test_validation_errors():
     os.environ["OCEAN_NETWORK_NAME"] = "development"
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name="development",
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
