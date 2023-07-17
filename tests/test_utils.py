@@ -4,7 +4,10 @@ import pytest
 from aea.configurations.base import ConnectionConfig
 
 from ocean_connection.connections.ocean_connection import OceanConnection
-from ocean_connection.connections.ocean_connection.utils import get_tx_dict, convert_to_bytes_format
+from ocean_connection.connections.ocean_connection.utils import (
+    get_tx_dict,
+    convert_to_bytes_format,
+)
 
 from brownie.network import chain
 from web3.main import Web3
