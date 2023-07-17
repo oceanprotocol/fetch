@@ -5,7 +5,7 @@ import time
 
 from aea.configurations.base import ConnectionConfig
 
-from connections.connection import OceanConnection
+from ocean_connection.connections.ocean_connection import OceanConnection
 
 
 def test_compute_flow(caplog, consumer_wallet):

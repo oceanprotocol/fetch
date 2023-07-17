@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2018-2019 Fetch.AI Limited
+#   Copyright 2018-2023 Fetch.AI Limited
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,6 +17,12 @@
 #
 # ------------------------------------------------------------------------------
 """Scaffold connection and channel."""
+from typing import Any, Optional
+
+from aea.configurations.base import PublicId
+from aea.connections.base import BaseSyncConnection, Connection
+from aea.mail.base import Envelope
+
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -39,19 +45,18 @@ from ocean_lib.web3_internal.constants import ZERO_ADDRESS
 from ocean_lib.web3_internal.utils import connect_to_network
 from web3.main import Web3
 
+
 """
 Choose one of the possible implementations:
 
 Sync (inherited from BaseSyncConnection) or Async (inherited from Connection) connection and remove unused one.
 """
 
-CONNECTION_ID = PublicId.from_str("oceanprotocol/connection:0.1.0")
+CONNECTION_ID = PublicId.from_str("maria_oceanprotocol/ocean_connection:0.1.0")
 
 
 class OceanConnection(BaseSyncConnection):
     """Proxy to the functionality of the SDK or API."""
-
-    MAX_WORKER_THREADS = 5
 
     connection_id = CONNECTION_ID
 

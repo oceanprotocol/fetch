@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2018-2019 Fetch.AI Limited
+#   Copyright 2018-2023 Fetch.AI Limited
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,4 +17,14 @@
 #
 # ------------------------------------------------------------------------------
 
-"""Scaffold of a connection."""
+"""
+This module contains the support resources for the default protocol.
+
+It was created with protocol buffer compiler version `libprotoc 3.19.4` and aea version `1.2.5`.
+"""
+
+from packages.fetchai.protocols.default.message import DefaultMessage
+from packages.fetchai.protocols.default.serialization import DefaultSerializer
+
+
+DefaultMessage.serializer = DefaultSerializer

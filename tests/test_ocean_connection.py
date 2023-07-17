@@ -3,8 +3,8 @@ import os
 
 from aea.configurations.base import ConnectionConfig
 
-from connections.connection import OceanConnection
-from connections.utils import convert_to_bytes_format
+from ocean_connection.connections.ocean_connection import OceanConnection
+from ocean_connection.connections.ocean_connection.utils import convert_to_bytes_format
 from web3.main import Web3
 from brownie.network import accounts
 

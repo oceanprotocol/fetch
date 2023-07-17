@@ -1,5 +1,5 @@
-name: ocean
-author: eightballer
+name: ocean_connection
+author: maria_oceanprotocol
 version: 0.1.0
 type: connection
 description: The scaffold connection provides a scaffold for a connection to be implemented
@@ -7,17 +7,16 @@ description: The scaffold connection provides a scaffold for a connection to be 
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
-  README.md: Qmdt71SaCCwAG1c24VktXDm4pxgUBiPMg4bWfUTiqorypf
-  __init__.py: QmZvYZ5ECcWwqiNGh8qNTg735wu51HqaLxTSifUxkQ4KGj
-  connection.py: Qmb5kQU3HgiDhgK46o3h7Daa1dEuEvup153RDMre6FYwxs
+  __init__.py: QmaA7o9G1hT3fHtPDq6UYUyS5KY51uDkwMUGUc96odzSCX
+  connection.py: QmZLS6tKsabzo2t8CuPHGout1ek62xMWAPwggmAfj2twNm
+  readme.md: QmRFgpKrtPPTJSAEaXoNNKcYFiTAhVFKuiNZdjrjmAw8d1
   utils.py: QmVfEWQbXi9s2MB5xWphmBPKSK4KurTeYpzMvYV2FDPRDT
 fingerprint_ignore_patterns: []
 connections: []
 protocols: []
-class_name: OceanConnection
+class_name: MyScaffoldAsyncConnection
 config:
-  key_path: ''
-  ocean_network_name: ''
+  foo: bar
 excluded_protocols: []
 restricted_to_protocols: []
 dependencies: {}
