@@ -31,7 +31,7 @@ from brownie.network import accounts, chain, priority_fee, web3
 
 from aea.configurations.base import PublicId
 from aea.connections.base import BaseSyncConnection
-from connections.utils import (
+from ocean_connection.connections.ocean_connection.utils import (
     convert_to_bytes_format,
     get_tx_dict,
     validate_args,
@@ -52,13 +52,15 @@ Choose one of the possible implementations:
 Sync (inherited from BaseSyncConnection) or Async (inherited from Connection) connection and remove unused one.
 """
 
-CONNECTION_ID = PublicId.from_str("maria_oceanprotocol/ocean_connection:0.1.0")
+CONNECTION_ID = PublicId.from_str("ocean_protocol/ocean_connection:0.1.0")
 
 
 class OceanConnection(BaseSyncConnection):
     """Proxy to the functionality of the SDK or API."""
 
     connection_id = CONNECTION_ID
+
+    MAX_WORKER_THREADS = 5
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
         """

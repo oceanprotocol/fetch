@@ -3,7 +3,7 @@ import pytest
 
 from aea.configurations.base import ConnectionConfig
 
-from ocean_connection.connections.ocean_connection import OceanConnection
+from ocean_connection.connections.ocean_connection.connection import OceanConnection
 from ocean_connection.connections.ocean_connection.utils import (
     get_tx_dict,
     convert_to_bytes_format,
@@ -20,8 +20,8 @@ def test_get_tx_dict_on_ganache(publisher_wallet):
     os.environ["OCEAN_NETWORK_NAME"] = "development"
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name="development",
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],

@@ -1,13 +1,45 @@
 agent_name: ocean_connection
-author: maria_oceanprotocol
+author: ocean_protocol
 version: 0.1.0
 license: Apache-2.0
 description: ''
 aea_version: '>=1.2.0, <2.0.0'
-fingerprint: {}
+fingerprint:
+  connections/__init__.py: QmaRwA91m9Rdfaq9u3FH1fdMVxw1wFPjKL38czkWMxh3KB
+  connections/ocean_connection/__init__.py: QmaA7o9G1hT3fHtPDq6UYUyS5KY51uDkwMUGUc96odzSCX
+  connections/ocean_connection/connection.py: QmbF3rVwu7wYVsomvvYZkyZLSaHZYTRW18xT9eJEoXNRBp
+  connections/ocean_connection/readme.md: QmRFgpKrtPPTJSAEaXoNNKcYFiTAhVFKuiNZdjrjmAw8d1
+  connections/ocean_connection/utils.py: QmVfEWQbXi9s2MB5xWphmBPKSK4KurTeYpzMvYV2FDPRDT
+  contracts/__init__.py: QmaRwA91m9Rdfaq9u3FH1fdMVxw1wFPjKL38czkWMxh3KB
+  protocols/__init__.py: QmaRwA91m9Rdfaq9u3FH1fdMVxw1wFPjKL38czkWMxh3KB
+  skills/__init__.py: QmaRwA91m9Rdfaq9u3FH1fdMVxw1wFPjKL38czkWMxh3KB
+  vendor/__init__.py: QmaRwA91m9Rdfaq9u3FH1fdMVxw1wFPjKL38czkWMxh3KB
+  vendor/fetchai/protocols/default/README.md: Qma4UhkBrAwxD1qdNwiMwTVYYQB7cBHd7UXJQ1SQWYi8Zs
+  vendor/fetchai/protocols/default/__init__.py: QmQgKC4pQPaoCXwfSkJimbqpyMN1qGUq7RfBAU2591yTap
+  vendor/fetchai/protocols/default/custom_types.py: QmQUFTE8WVj8V1PyrhuCvmPbTLoTuFWjiK97XJKavDQfyC
+  vendor/fetchai/protocols/default/default.proto: QmWYzTSHVbz7FBS84iKFMhGSXPxay2mss29vY7ufz2BFJ8
+  vendor/fetchai/protocols/default/default_pb2.py: QmPX9tm18ddM5Q928JLd1HmdUZKp2ssKhCJzhZ53FJmjxM
+  vendor/fetchai/protocols/default/dialogues.py: QmPbCt78gFSSPbmBu87R6REMc2gD3JU9UWMkVNF9mP9A7x
+  vendor/fetchai/protocols/default/message.py: QmRL8PiNCoCMsHmrR4LnbphEtm4oEPR8AAhSgoADHV29D7
+  vendor/fetchai/protocols/default/serialization.py: QmepsqanTZV4Wg3Dg9qDtSqwe5AyRS2BUgURndk1h9kjNt
+  vendor/fetchai/protocols/signing/README.md: QmWWjq6ppoaiGG46yUQWbgrN78fF3iKcuk5Zn6L7pkVdtA
+  vendor/fetchai/protocols/signing/__init__.py: QmQwA8M3CvBeWabUAWUC6Mmt5bUgqQK8TAHt62JpZzsSt1
+  vendor/fetchai/protocols/signing/custom_types.py: QmbYjhUzvTMv6kU9UbuGLyVGfyurZPgX8PBGZGj58jDHv3
+  vendor/fetchai/protocols/signing/dialogues.py: QmQ9LyN1FamvMZ1o7Pt9H69bZZVY1Yxgm7HhyeN4fSXEUa
+  vendor/fetchai/protocols/signing/message.py: QmeugK5PynXtgXgRbvjVyQCBXWwVdvnQvNgWLYScqLhFn1
+  vendor/fetchai/protocols/signing/serialization.py: QmPeHDs5eXVApHLj6Xecc6jqBC8LDrmUJcKRgVYDNQ9W2q
+  vendor/fetchai/protocols/signing/signing.proto: QmbHQYswu1d5JTq8QD3WY9Trw7CwCFbv4c1wmgwiZC5756
+  vendor/fetchai/protocols/signing/signing_pb2.py: QmaYoSC2uxSATBzNY9utPp7J78drWgyYocr4cPjEhyLf7y
+  vendor/fetchai/protocols/state_update/README.md: QmbFH2ySjB5FnvLhKCm68jJPVeasHbGBSTUyEZP4P17mKi
+  vendor/fetchai/protocols/state_update/__init__.py: Qmboa7WunXM34apxH2fu4z1996CrfxcCaV2HxhvXsjnkxK
+  vendor/fetchai/protocols/state_update/dialogues.py: QmUugwuLbuHr8zkGRkd7Dimwc7LzbCHYvdNHC6cn3TS7XP
+  vendor/fetchai/protocols/state_update/message.py: QmPKeMCSAcxDeEXUMzAjRvVvWJ5AUMYoDyGPGjUEoHkKff
+  vendor/fetchai/protocols/state_update/serialization.py: QmRxkqWUB7EVGp1SnsMXeDssCcsiirvPPJAaeN5TREPBBm
+  vendor/fetchai/protocols/state_update/state_update.proto: QmdLQpu2jpJUuUFhF34hBeh64Gfv5V1JxLTKCTgY93qduR
+  vendor/fetchai/protocols/state_update/state_update_pb2.py: QmXmaUALXJ4zV2CuADrGsFpNmy8RhWLSYpm7dXXogfgrw3
 fingerprint_ignore_patterns: []
 connections:
-- maria_oceanprotocol/ocean_connection:0.1.0
+- ocean_protocol/ocean_connection:0.1.0
 contracts: []
 protocols:
 - fetchai/default:1.1.7

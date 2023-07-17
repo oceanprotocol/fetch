@@ -3,7 +3,7 @@ import os
 
 from aea.configurations.base import ConnectionConfig
 
-from ocean_connection.connections.ocean_connection import OceanConnection
+from ocean_connection.connections.ocean_connection.connection import OceanConnection
 from ocean_connection.connections.ocean_connection.utils import convert_to_bytes_format
 from web3.main import Web3
 from brownie.network import accounts
@@ -16,8 +16,8 @@ def test_deploy_c2d_data_asset(caplog):
 
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
@@ -51,8 +51,8 @@ def test_deploy_algorithm(caplog):
 
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
@@ -97,8 +97,8 @@ def test_deploy_fixed_rate_exchange(caplog):
 
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
@@ -157,8 +157,8 @@ def test_deploy_fixed_rate_exchange(caplog):
     # Purchase datatokens as buyer
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["BUYER_AEA_KEY_ETHEREUM_PATH"],
@@ -192,8 +192,8 @@ def test_deploy_dispenser(caplog):
 
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
@@ -239,8 +239,8 @@ def test_deploy_dispenser(caplog):
     # Purchase datatokens as buyer
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["BUYER_AEA_KEY_ETHEREUM_PATH"],
@@ -271,8 +271,8 @@ def test_permission_dataset(caplog):
 
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],

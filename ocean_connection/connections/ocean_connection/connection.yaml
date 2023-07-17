@@ -1,20 +1,21 @@
 name: ocean_connection
-author: maria_oceanprotocol
+author: ocean_protocol
 version: 0.1.0
 type: connection
-description: The scaffold connection provides a scaffold for a connection to be implemented
-  by the developer.
+description: The connection provides Ocean Protocol core functionalities that can
+  be embedded in Fetch.ai agents. This is currently an alpha version and for potential
+  issues or questions, please ask us on Discord tech-issues channel https://discord.com/channels/612953348487905282/1070364079451033631.
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: QmaA7o9G1hT3fHtPDq6UYUyS5KY51uDkwMUGUc96odzSCX
-  connection.py: QmZLS6tKsabzo2t8CuPHGout1ek62xMWAPwggmAfj2twNm
+  connection.py: QmaAsf7whBJYUdnGfFfTvzjjnjyYsicEYwevDdxFYfcMcY
   readme.md: QmRFgpKrtPPTJSAEaXoNNKcYFiTAhVFKuiNZdjrjmAw8d1
   utils.py: QmVfEWQbXi9s2MB5xWphmBPKSK4KurTeYpzMvYV2FDPRDT
 fingerprint_ignore_patterns: []
 connections: []
 protocols: []
-class_name: MyScaffoldAsyncConnection
+class_name: OceanConnection
 config:
   foo: bar
 excluded_protocols: []

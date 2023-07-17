@@ -5,7 +5,7 @@ import time
 
 from aea.configurations.base import ConnectionConfig
 
-from ocean_connection.connections.ocean_connection import OceanConnection
+from ocean_connection.connections.ocean_connection.connection import OceanConnection
 
 
 def test_compute_flow(caplog, consumer_wallet):
@@ -13,8 +13,8 @@ def test_compute_flow(caplog, consumer_wallet):
 
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
@@ -94,8 +94,8 @@ def test_compute_flow(caplog, consumer_wallet):
     # Purchase datatokens as buyer
     ocean = OceanConnection(
         ConnectionConfig(
-            "connection",
-            "oceanprotocol",
+            "ocean_connection",
+            "ocean_protocol",
             "0.1.0",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["BUYER_AEA_KEY_ETHEREUM_PATH"],
