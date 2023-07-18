@@ -1,17 +1,19 @@
 name: ocean_connection
 author: ocean_protocol
-version: 0.1.1
+version: 0.1.2
 type: connection
-description: The connection provides Ocean Protocol core functionalities that can
-  be embedded in Fetch.ai agents. This is currently an alpha version and for potential
-  issues or questions, please ask us on Discord tech-issues channel https://discord.com/channels/612953348487905282/1070364079451033631.
-  The source code is available on GitHub repository https://github.com/oceanprotocol/fetch
-  for feedback and tutorials.
+description: The connection offers core functionalities of Ocean Protocol that can
+  be incorporated into Fetch.ai agents. Please note that this integration is currently
+  in an alpha version, so if you encounter any issues or have any questions, we encourage
+  you to reach out to us on the Discord tech-issues channel at https://discord.com/channels/612953348487905282/1070364079451033631.
+  For those interested, the source code is open-source and available on the GitHub
+  repository at https://github.com/oceanprotocol/fetch. We value your input and look
+  forward to your contributions!
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: QmaA7o9G1hT3fHtPDq6UYUyS5KY51uDkwMUGUc96odzSCX
-  connection.py: QmVccNNnaS741i2GkciuyprHjYe4U8bNg5uSwLPEvwKJd4
+  connection.py: QmdXYmf5c5QA7E9ErwQvZhHSHyorXuQUzEGPzV7sYjbSyR
   readme.md: QmRFgpKrtPPTJSAEaXoNNKcYFiTAhVFKuiNZdjrjmAw8d1
   utils.py: QmVfEWQbXi9s2MB5xWphmBPKSK4KurTeYpzMvYV2FDPRDT
 fingerprint_ignore_patterns: []

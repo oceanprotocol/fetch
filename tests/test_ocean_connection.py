@@ -18,7 +18,7 @@ def test_deploy_c2d_data_asset(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -53,7 +53,7 @@ def test_deploy_algorithm(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -99,7 +99,7 @@ def test_deploy_fixed_rate_exchange(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -159,7 +159,7 @@ def test_deploy_fixed_rate_exchange(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["BUYER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -194,7 +194,7 @@ def test_deploy_dispenser(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -241,7 +241,7 @@ def test_deploy_dispenser(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["BUYER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -273,7 +273,7 @@ def test_permission_dataset(caplog):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.0",
+            "0.1.2",
             ocean_network_name=os.environ["OCEAN_NETWORK_NAME"],
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
