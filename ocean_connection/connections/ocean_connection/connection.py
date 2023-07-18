@@ -52,7 +52,7 @@ Choose one of the possible implementations:
 Sync (inherited from BaseSyncConnection) or Async (inherited from Connection) connection and remove unused one.
 """
 
-CONNECTION_ID = PublicId.from_str("ocean_protocol/ocean_connection:0.1.2")
+CONNECTION_ID = PublicId.from_str("ocean_protocol/ocean_connection:0.1.3")
 
 
 class OceanConnection(BaseSyncConnection):

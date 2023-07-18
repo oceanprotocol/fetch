@@ -1,11 +1,12 @@
 name: ocean_connection
 author: ocean_protocol
-version: 0.1.2
+version: 0.1.3
 type: connection
 description: The connection offers core functionalities of Ocean Protocol that can
-  be incorporated into Fetch.ai agents. Please note that this integration is currently
-  in an alpha version, so if you encounter any issues or have any questions, we encourage
-  you to reach out to us on the Discord tech-issues channel at https://discord.com/channels/612953348487905282/1070364079451033631.
+  be incorporated into Fetch.ai agents. You can publish data assets & algorithms,
+  consume data and run algorithms using C2D feature. Please note that this integration
+  is currently in an alpha version, so if you encounter any issues or have any questions,
+  we encourage you to reach out to us on the Discord tech-issues channel at https://discord.com/channels/612953348487905282/1070364079451033631.
   For those interested, the source code is open-source and available on the GitHub
   repository at https://github.com/oceanprotocol/fetch. We value your input and look
   forward to your contributions!
