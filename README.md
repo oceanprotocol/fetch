@@ -1,10 +1,10 @@
 # Ocean Connection
 Big data has led to significant privacy concerns, but we have developed a groundbreaking solution to combat this issue while still harnessing business intelligence.
-This repository explores the integration of Ocean Protocol's decentralized data marketplace with Fetch.ai's Autonomous Economic Agents (AEAs),
+This repository explores the integration of Ocean Protocol’s decentralized data ecosystem with Fetch.ai's Autonomous Economic Agents (AEAs),
 revolutionizing data exchange with enhanced privacy and security.
 
 ## Project Description
-We present a groundbreaking integration of Ocean Protocol's decentralized data marketplace with Fetch.ai's Autonomous Economic Agents (AEAs).
+We present a groundbreaking integration of Ocean Protocol’s decentralized data ecosystem with Fetch.ai's Autonomous Economic Agents (AEAs).
 This revolutionary pairing enhances data exchange, preserving user privacy, and unlocking valuable business intelligence.
 This integration empowers users to publish, discover, and securely consume data using web3 technology, benefiting from data NFTs for IP rights management and data wallets.
 The Ocean Marketplace, akin to Uniswap in finance, facilitates buying, selling, and computation on datasets while ensuring data privacy and secrecy.
