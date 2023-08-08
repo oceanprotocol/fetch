@@ -22,7 +22,7 @@ def test_get_tx_dict_on_ganache(publisher_wallet):
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.3",
+            "0.1.4",
             ocean_network_name="development",
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
@@ -54,7 +54,7 @@ def test_validation_errors():
         ConnectionConfig(
             "ocean_connection",
             "ocean_protocol",
-            "0.1.3",
+            "0.1.4",
             ocean_network_name="development",
             key_path=os.environ["SELLER_AEA_KEY_ETHEREUM_PATH"],
         ),
